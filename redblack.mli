@@ -1,10 +1,4 @@
-type bool =
-| True
-| False
 
-type nat =
-| O
-| S of nat
 
 type comparison =
 | Eq
@@ -16,78 +10,88 @@ type compareSpecT =
 | CompLtT
 | CompGtT
 
-val compareSpec2Type : comparison -> compareSpecT
-
 type 'a sig0 =
   'a
   (* singleton inductive, whose constructor was exist *)
 
-val nat_compare : nat -> nat -> comparison
+type sumbool =
+| Left
+| Right
+
+type 'a eqDec = 'a -> 'a -> sumbool
+
+type 'a ordered = { eq_dec : 'a eqDec; compare : ('a -> 'a -> comparison); compare_spec : ('a -> 'a -> compareSpecT) }
+
+val compare_spec : 'a1 ordered -> 'a1 -> 'a1 -> compareSpecT
+
+type a (* AXIOM TO BE REALIZED *)
+
+val ordA : a ordered
 
 type color =
 | Red
 | Black
 
-type oKNode =
-| OKRed
-| OKBlack
-
 type rbtree =
 | Leaf
-| Node of oKNode * rbtree * nat * rbtree
-
-val r2b : rbtree -> rbtree
-
-type blkn =
-| Mkblkn of bool * rbtree
-
-val blacken : rbtree -> blkn
-
-val cof : rbtree -> color
-
-type cComp =
-| CCompEQ
-| CCompRB
-| CCompBR
-
-val ccomp : rbtree -> rbtree -> cComp
-
-val bal0 : nat -> nat -> rbtree -> rbtree -> rbtree -> rbtree
-
-type cT =
-  rbtree
-  (* singleton inductive, whose constructor was mkCT *)
-
-val bal1 : rbtree -> nat -> rbtree -> cT
-
-val bal2 : rbtree -> nat -> rbtree -> cT
-
-val bal3 : rbtree -> nat -> rbtree -> rbtree
-
-val bal4 : rbtree -> nat -> rbtree -> rbtree
-
-val comp : nat -> nat -> compareSpecT
+| Node of color * rbtree * a * rbtree
 
 type fnd =
 | Found
 | NotFound
 
-val find : nat -> rbtree -> fnd
+val find : a -> rbtree -> fnd
+
+val bal0 : rbtree -> a -> rbtree -> a -> rbtree -> rbtree
+
+val r2b : rbtree -> rbtree
+
+val cof : rbtree -> color
+
+type iChangedTo =
+| ISameIndx
+| IReddened
+| IBlackInc
+
+val bal1 : rbtree -> a -> rbtree -> ( * )
+
+val bal2 : rbtree -> a -> rbtree -> ( * )
+
+val c2i : color -> iChangedTo
 
 type ins =
-| Mkins of bool * rbtree
+| IFound
+| IInsed of iChangedTo * rbtree
 
-val insert : nat -> rbtree -> ins
+val insert : a -> rbtree -> ins
+
+type dChangedTo =
+| StillFits
+| Rebalance
+
+val bal3 : rbtree -> a -> rbtree -> rbtree
+
+val bal4 : rbtree -> a -> rbtree -> rbtree
+
+val c2d : color -> dChangedTo
+
+val r2c : color -> rbtree -> rbtree
+
+val dfitl : color -> ( * ) -> a -> rbtree -> ( * )
+
+val dfitr : color -> rbtree -> a -> ( * ) -> ( * )
+
+val t2d : color -> rbtree -> ( * )
 
 type dmin =
-| Nodmin
-| Mkdmin of nat * bool * rbtree
+| Dmleaf
+| Dmnode of a * ( * )
 
 val delmin : rbtree -> dmin
 
 type del =
-| Delfnd of bool * rbtree
+| Delfnd of ( * )
 | Delnot
 
-val delete : nat -> rbtree -> del
+val delete : a -> rbtree -> del
 

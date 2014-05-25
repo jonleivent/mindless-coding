@@ -1,11 +1,3 @@
-type bool =
-| True
-| False
-
-type nat =
-| O
-| S of nat
-
 type comparison =
 | Eq
 | Lt
@@ -16,270 +8,251 @@ type compareSpecT =
 | CompLtT
 | CompGtT
 
-(** val compareSpec2Type : comparison -> compareSpecT **)
-
-let compareSpec2Type = function
-| Eq -> CompEqT
-| Lt -> CompLtT
-| Gt -> CompGtT
-
 type 'a sig0 =
   'a
   (* singleton inductive, whose constructor was exist *)
 
-(** val nat_compare : nat -> nat -> comparison **)
+type sumbool =
+| Left
+| Right
 
-let rec nat_compare n m =
-  match n with
-  | O ->
-    (match m with
-     | O -> Eq
-     | S n0 -> Lt)
-  | S n' ->
-    (match m with
-     | O -> Gt
-     | S m' -> nat_compare n' m')
+type 'a eqDec = 'a -> 'a -> sumbool
+
+type 'a ordered = { eq_dec : 'a eqDec; compare : ('a -> 'a -> comparison); compare_spec : ('a -> 'a -> compareSpecT) }
+
+(** val compare_spec : 'a1 ordered -> 'a1 -> 'a1 -> compareSpecT **)
+
+let compare_spec x = x.compare_spec
+
+type a (* AXIOM TO BE REALIZED *)
+
+(** val ordA : a ordered **)
+
+let ordA =
+  failwith "AXIOM TO BE REALIZED"
 
 type color =
 | Red
 | Black
 
-type oKNode =
-| OKRed
-| OKBlack
-
 type rbtree =
 | Leaf
-| Node of oKNode * rbtree * nat * rbtree
-
-(** val r2b : rbtree -> rbtree **)
-
-let r2b = function
-| Leaf -> assert false (* absurd case *)
-| Node (ok, tl, d, tr) -> Node (OKBlack, tl, d, tr)
-
-type blkn =
-| Mkblkn of bool * rbtree
-
-(** val blacken : rbtree -> blkn **)
-
-let blacken = function
-| Leaf -> Mkblkn (True, Leaf)
-| Node (ok, tl, d, tr) ->
-  (match ok with
-   | OKRed -> Mkblkn (False, (Node (OKBlack, tl, d, tr)))
-   | OKBlack -> Mkblkn (True, (Node (OKBlack, tl, d, tr))))
-
-(** val cof : rbtree -> color **)
-
-let cof = function
-| Leaf -> Black
-| Node (ok, tl, d, tr) ->
-  (match ok with
-   | OKRed -> Red
-   | OKBlack -> Black)
-
-type cComp =
-| CCompEQ
-| CCompRB
-| CCompBR
-
-(** val ccomp : rbtree -> rbtree -> cComp **)
-
-let ccomp t1 t2 =
-  match cof t1 with
-  | Red ->
-    (match cof t2 with
-     | Red -> CCompEQ
-     | Black -> CCompRB)
-  | Black ->
-    (match cof t2 with
-     | Red -> CCompBR
-     | Black -> CCompEQ)
-
-(** val bal0 : nat -> nat -> rbtree -> rbtree -> rbtree -> rbtree **)
-
-let bal0 x y tl tm tr =
-  match tm with
-  | Leaf -> assert false (* absurd case *)
-  | Node (ok, tl0, d, tr0) ->
-    Node (OKRed, (Node (OKBlack, tl, x, tl0)), d, (Node (OKBlack, tr0, y, tr)))
-
-type cT =
-  rbtree
-  (* singleton inductive, whose constructor was mkCT *)
-
-(** val bal1 : rbtree -> nat -> rbtree -> cT **)
-
-let bal1 tl d tr =
-  match tl with
-  | Leaf -> assert false (* absurd case *)
-  | Node (ok, tl0, d0, tr0) ->
-    (match cof tr0 with
-     | Red -> bal0 d0 d tl0 tr0 tr
-     | Black ->
-       (match cof tl0 with
-        | Red -> Node (OKRed, (r2b tl0), d0, (Node (OKBlack, tr0, d, tr)))
-        | Black -> Node (OKBlack, (Node (OKRed, tl0, d0, tr0)), d, tr)))
-
-(** val bal2 : rbtree -> nat -> rbtree -> cT **)
-
-let bal2 tl d = function
-| Leaf -> assert false (* absurd case *)
-| Node (ok, tl0, d0, tr0) ->
-  (match cof tr0 with
-   | Red -> Node (OKRed, (Node (OKBlack, tl, d, tl0)), d0, (r2b tr0))
-   | Black ->
-     (match cof tl0 with
-      | Red -> bal0 d d0 tl tl0 tr0
-      | Black -> Node (OKBlack, tl, d, (Node (OKRed, tl0, d0, tr0)))))
-
-(** val bal3 : rbtree -> nat -> rbtree -> rbtree **)
-
-let bal3 tl d = function
-| Leaf -> assert false (* absurd case *)
-| Node (ok, tl0, d0, tr0) -> Node (OKBlack, (bal2 tl d tl0), d0, tr0)
-
-(** val bal4 : rbtree -> nat -> rbtree -> rbtree **)
-
-let bal4 tl d tr =
-  match tl with
-  | Leaf -> assert false (* absurd case *)
-  | Node (ok, tl0, d0, tr0) -> Node (OKBlack, tl0, d0, (bal1 tr0 d tr))
-
-(** val comp : nat -> nat -> compareSpecT **)
-
-let comp x y =
-  compareSpec2Type (nat_compare x y)
+| Node of color * rbtree * a * rbtree
 
 type fnd =
 | Found
 | NotFound
 
-(** val find : nat -> rbtree -> fnd **)
+(** val find : a -> rbtree -> fnd **)
 
 let rec find x = function
 | Leaf -> NotFound
-| Node (ok, tl, d, tr) ->
-  (match comp x d with
+| Node (co, tl, d, tr) ->
+  (match ordA.compare_spec x d with
    | CompEqT -> Found
    | CompLtT -> find x tl
    | CompGtT -> find x tr)
 
-type ins =
-| Mkins of bool * rbtree
+(** val bal0 : rbtree -> a -> rbtree -> a -> rbtree -> rbtree **)
 
-(** val insert : nat -> rbtree -> ins **)
+let bal0 tl x tm y tr =
+  match tm with
+  | Leaf -> assert false (* absurd case *)
+  | Node (co, tl0, d, tr0) -> Node (Red, (Node (Black, tl, x, tl0)), d, (Node (Black, tr0, y, tr)))
+
+(** val r2b : rbtree -> rbtree **)
+
+let r2b = function
+| Leaf -> assert false (* absurd case *)
+| Node (co, tl, d, tr) -> Node (Black, tl, d, tr)
+
+(** val cof : rbtree -> color **)
+
+let cof = function
+| Leaf -> Black
+| Node (co, tl, d, tr) -> co
+
+type iChangedTo =
+| ISameIndx
+| IReddened
+| IBlackInc
+
+(** val bal1 : rbtree -> a -> rbtree -> ( * ) **)
+
+let bal1 tl d tr =
+  match tl with
+  | Leaf -> assert false (* absurd case *)
+  | Node (co, tl0, d0, tr0) ->
+    (match cof tr0 with
+     | Red -> IReddened,(bal0 tl0 d0 tr0 d tr)
+     | Black ->
+       (match cof tl0 with
+        | Red -> IReddened,(Node (Red, (r2b tl0), d0, (Node (Black, tr0, d, tr))))
+        | Black -> ISameIndx,(Node (Black, (Node (Red, tl0, d0, tr0)), d, tr))))
+
+(** val bal2 : rbtree -> a -> rbtree -> ( * ) **)
+
+let bal2 tl d = function
+| Leaf -> assert false (* absurd case *)
+| Node (co, tl0, d0, tr0) ->
+  (match cof tl0 with
+   | Red -> IReddened,(bal0 tl d tl0 d0 tr0)
+   | Black ->
+     (match cof tr0 with
+      | Red -> IReddened,(Node (Red, (Node (Black, tl, d, tl0)), d0, (r2b tr0)))
+      | Black -> ISameIndx,(Node (Black, tl, d, (Node (Red, tl0, d0, tr0))))))
+
+(** val c2i : color -> iChangedTo **)
+
+let c2i = function
+| Red -> IBlackInc
+| Black -> ISameIndx
+
+type ins =
+| IFound
+| IInsed of iChangedTo * rbtree
+
+(** val insert : a -> rbtree -> ins **)
 
 let rec insert x = function
-| Leaf -> Mkins (False, (Node (OKRed, Leaf, x, Leaf)))
-| Node (ok, tl, d, tr) ->
-  (match comp x d with
-   | CompEqT -> Mkins (True, (Node (ok, tl, d, tr)))
+| Leaf -> IInsed (IReddened, (Node (Red, Leaf, x, Leaf)))
+| Node (co, tl, d, tr) ->
+  (match ordA.compare_spec x d with
+   | CompEqT -> IFound
    | CompLtT ->
-     let Mkins (found, tl') = insert x tl in
-     (match ccomp tl tl' with
-      | CCompEQ -> Mkins (found, (Node (ok, tl', d, tr)))
-      | CCompRB -> Mkins (False, (bal1 tl' d tr))
-      | CCompBR -> Mkins (False, (Node (OKBlack, tl', d, tr))))
+     (match insert x tl with
+      | IFound -> IFound
+      | IInsed (i, to0) ->
+        (match i with
+         | ISameIndx -> IInsed (ISameIndx, (Node (co, to0, d, tr)))
+         | IReddened -> IInsed ((c2i co), (Node (Black, to0, d, tr)))
+         | IBlackInc -> let i0,to1 = bal1 to0 d tr in IInsed (i0, to1)))
    | CompGtT ->
-     let Mkins (found, tr') = insert x tr in
-     (match ccomp tr tr' with
-      | CCompEQ -> Mkins (found, (Node (ok, tl, d, tr')))
-      | CCompRB -> Mkins (False, (bal2 tl d tr'))
-      | CCompBR -> Mkins (False, (Node (OKBlack, tl, d, tr')))))
+     (match insert x tr with
+      | IFound -> IFound
+      | IInsed (i, to0) ->
+        (match i with
+         | ISameIndx -> IInsed (ISameIndx, (Node (co, tl, d, to0)))
+         | IReddened -> IInsed ((c2i co), (Node (Black, tl, d, to0)))
+         | IBlackInc -> let i0,to1 = bal2 tl d to0 in IInsed (i0, to1))))
+
+type dChangedTo =
+| StillFits
+| Rebalance
+
+(** val bal3 : rbtree -> a -> rbtree -> rbtree **)
+
+let bal3 tl d = function
+| Leaf -> assert false (* absurd case *)
+| Node (co, tl0, d0, tr0) ->
+  (match tl0 with
+   | Leaf -> assert false (* absurd case *)
+   | Node (co0, tl1, d1, tr1) ->
+     (match cof tl1 with
+      | Red -> Node (Black, (bal0 tl d tl1 d1 tr1), d0, tr0)
+      | Black -> Node (Black, (Node (Black, (Node (Red, tl, d, tl1)), d1, tr1)), d0, tr0)))
+
+(** val bal4 : rbtree -> a -> rbtree -> rbtree **)
+
+let bal4 tl d tr =
+  match tl with
+  | Leaf -> assert false (* absurd case *)
+  | Node (co, tl0, d0, tr0) ->
+    (match tr0 with
+     | Leaf -> assert false (* absurd case *)
+     | Node (co0, tl1, d1, tr1) ->
+       (match cof tr1 with
+        | Red -> Node (Black, tl0, d0, (bal0 tl1 d1 tr1 d tr))
+        | Black -> Node (Black, tl0, d0, (Node (Black, tl1, d1, (Node (Red, tr1, d, tr)))))))
+
+(** val c2d : color -> dChangedTo **)
+
+let c2d = function
+| Red -> StillFits
+| Black -> Rebalance
+
+(** val r2c : color -> rbtree -> rbtree **)
+
+let r2c c t' =
+  match c with
+  | Red -> t'
+  | Black -> r2b t'
+
+(** val dfitl : color -> ( * ) -> a -> rbtree -> ( * ) **)
+
+let dfitl co dr d tr =
+  let dc,t = dr in
+  (match dc with
+   | StillFits -> StillFits,(Node (co, t, d, tr))
+   | Rebalance ->
+     (match tr with
+      | Leaf -> assert false (* absurd case *)
+      | Node (co0, tl0, d0, tr0) ->
+        (match co0 with
+         | Red -> StillFits,(bal3 t d (Node (Red, tl0, d0, tr0)))
+         | Black ->
+           (match cof tl0 with
+            | Red -> StillFits,(r2c co (bal0 t d tl0 d0 tr0))
+            | Black -> (c2d co),(Node (Black, (Node (Red, t, d, tl0)), d0, tr0))))))
+
+(** val dfitr : color -> rbtree -> a -> ( * ) -> ( * ) **)
+
+let dfitr co tl d = function
+| dc,t ->
+  (match dc with
+   | StillFits -> StillFits,(Node (co, tl, d, t))
+   | Rebalance ->
+     (match tl with
+      | Leaf -> assert false (* absurd case *)
+      | Node (co0, tl0, d0, tr0) ->
+        (match co0 with
+         | Red -> StillFits,(bal4 (Node (Red, tl0, d0, tr0)) d t)
+         | Black ->
+           (match cof tr0 with
+            | Red -> StillFits,(r2c co (bal0 tl0 d0 tr0 d t))
+            | Black -> (c2d co),(Node (Black, tl0, d0, (Node (Red, tr0, d, t))))))))
+
+(** val t2d : color -> rbtree -> ( * ) **)
+
+let t2d co t =
+  match cof t with
+  | Red -> StillFits,(r2b t)
+  | Black -> (c2d co),t
 
 type dmin =
-| Nodmin
-| Mkdmin of nat * bool * rbtree
+| Dmleaf
+| Dmnode of a * ( * )
 
 (** val delmin : rbtree -> dmin **)
 
 let rec delmin = function
-| Leaf -> Nodmin
-| Node (ok, tl, d, tr) ->
+| Leaf -> Dmleaf
+| Node (co, tl, d, tr) ->
   (match delmin tl with
-   | Nodmin ->
-     (match cof tr with
-      | Red -> Mkdmin (d, False, (r2b tr))
-      | Black ->
-        (match ok with
-         | OKRed -> Mkdmin (d, False, tr)
-         | OKBlack -> Mkdmin (d, True, tr)))
-   | Mkdmin (m, incbh, t) ->
-     (match ccomp tl t with
-      | CCompEQ ->
-        (match incbh with
-         | True ->
-           (match cof tr with
-            | Red -> Mkdmin (m, False, (bal3 t d tr))
-            | Black ->
-              (match ok with
-               | OKRed -> Mkdmin (m, False, (bal2 t d tr))
-               | OKBlack -> let Mkblkn (x, x0) = blacken (bal2 t d tr) in Mkdmin (m, x, x0)))
-         | False -> Mkdmin (m, False, (Node (ok, t, d, tr))))
-      | CCompRB -> Mkdmin (m, False, (Node (OKBlack, t, d, tr)))
-      | CCompBR -> assert false (* absurd case *)))
+   | Dmleaf -> Dmnode (d, (t2d co tr))
+   | Dmnode (m, dr) -> Dmnode (m, (dfitl co dr d tr)))
 
 type del =
-| Delfnd of bool * rbtree
+| Delfnd of ( * )
 | Delnot
 
-(** val delete : nat -> rbtree -> del **)
+(** val delete : a -> rbtree -> del **)
 
 let rec delete x = function
 | Leaf -> Delnot
-| Node (ok, tl, d, tr) ->
-  (match comp x d with
+| Node (co, tl, d, tr) ->
+  (match ordA.compare_spec x d with
    | CompEqT ->
-     let d0 = delmin tr in
-     (match d0 with
-      | Nodmin ->
-        (match ok with
-         | OKRed -> Delfnd (False, tl)
-         | OKBlack -> let Mkblkn (x0, x1) = blacken tl in Delfnd (x0, x1))
-      | Mkdmin (m, incbh, t0) ->
-        (match incbh with
-         | True ->
-           (match cof tl with
-            | Red -> Delfnd (False, (bal4 tl m t0))
-            | Black ->
-              (match ok with
-               | OKRed -> Delfnd (False, (bal1 tl m t0))
-               | OKBlack -> let Mkblkn (x0, x1) = blacken (bal1 tl m t0) in Delfnd (x0, x1)))
-         | False -> Delfnd (False, (Node (ok, tl, m, t0)))))
+     let h = delmin tr in
+     (match h with
+      | Dmleaf -> Delfnd (t2d co tl)
+      | Dmnode (m, dr) -> Delfnd (dfitr co tl m dr))
    | CompLtT ->
      (match delete x tl with
-      | Delfnd (incbh, h) ->
-        (match ccomp tl h with
-         | CCompEQ ->
-           (match incbh with
-            | True ->
-              (match cof tr with
-               | Red -> Delfnd (False, (bal3 h d tr))
-               | Black ->
-                 (match ok with
-                  | OKRed -> Delfnd (False, (bal2 h d tr))
-                  | OKBlack -> let Mkblkn (x0, x1) = blacken (bal2 h d tr) in Delfnd (x0, x1)))
-            | False -> Delfnd (False, (Node (ok, h, d, tr))))
-         | CCompRB -> Delfnd (False, (Node (OKBlack, h, d, tr)))
-         | CCompBR -> assert false (* absurd case *))
+      | Delfnd r -> Delfnd (dfitl co r d tr)
       | Delnot -> Delnot)
    | CompGtT ->
      (match delete x tr with
-      | Delfnd (incbh, h) ->
-        (match ccomp tr h with
-         | CCompEQ ->
-           (match incbh with
-            | True ->
-              (match cof tl with
-               | Red -> Delfnd (False, (bal4 tl d h))
-               | Black ->
-                 (match ok with
-                  | OKRed -> Delfnd (False, (bal1 tl d h))
-                  | OKBlack -> let Mkblkn (x0, x1) = blacken (bal1 tl d h) in Delfnd (x0, x1)))
-            | False -> Delfnd (False, (Node (ok, tl, d, h))))
-         | CCompRB -> Delfnd (False, (Node (OKBlack, tl, d, h)))
-         | CCompBR -> assert false (* absurd case *))
+      | Delfnd r -> Delfnd (dfitr co tl d r)
       | Delnot -> Delnot))
 
