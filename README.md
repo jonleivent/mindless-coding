@@ -45,8 +45,8 @@ extracted code easier to read.
 
 The goal of the project is to develop (mindless-coding) techniques
 that programmers inexperienced with theorem proving can use to
-generate correct programs, where these techniques are actually easier
-to use than standard programming languages and ad-hoc software
+generate correct programs, where these techniques are potentially
+easier to use than standard programming languages and ad-hoc software
 engineering practices.  Hopefully, this will help transfer the
 technology of dependent types and theorem proving to a much wider
 audience.
