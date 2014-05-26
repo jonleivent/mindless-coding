@@ -62,19 +62,19 @@ val ifitr : balanceFactor -> avltree -> a -> avltree -> insertResult
 
 val insert : a -> avltree -> insertResult
 
-val lowered : avltree -> avltree -> bool
-
 type delout =
   avltree
   (* singleton inductive, whose constructor was Delout *)
+
+val lowered : avltree -> avltree -> bool
 
 val dRotateRight : avltree -> a -> avltree -> delout
 
 val dRotateLeft : avltree -> a -> avltree -> delout
 
-val dfitl : balanceFactor -> delout -> avltree -> a -> avltree -> delout
+val dFitLeft : balanceFactor -> delout -> avltree -> a -> avltree -> delout
 
-val dfitr : balanceFactor -> delout -> avltree -> a -> avltree -> delout
+val dFitRight : balanceFactor -> delout -> avltree -> a -> avltree -> delout
 
 type delminResult =
 | NoMin

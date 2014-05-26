@@ -39,11 +39,11 @@ type rbtree =
 | Leaf
 | Node of color * rbtree * a * rbtree
 
-type fnd =
+type findResult =
 | Found
 | NotFound
 
-(** val find : a -> rbtree -> fnd **)
+(** val find : a -> rbtree -> findResult **)
 
 let rec find x = function
 | Leaf -> NotFound
@@ -53,108 +53,108 @@ let rec find x = function
    | CompLtT -> find x tl
    | CompGtT -> find x tr)
 
-(** val bal0 : rbtree -> a -> rbtree -> a -> rbtree -> rbtree **)
-
-let bal0 tl x tm y tr =
-  match tm with
-  | Leaf -> assert false (* absurd case *)
-  | Node (co, tl0, d, tr0) -> Node (Red, (Node (Black, tl, x, tl0)), d, (Node (Black, tr0, y, tr)))
-
-(** val r2b : rbtree -> rbtree **)
-
-let r2b = function
-| Leaf -> assert false (* absurd case *)
-| Node (co, tl, d, tr) -> Node (Black, tl, d, tr)
-
 (** val cof : rbtree -> color **)
 
 let cof = function
 | Leaf -> Black
-| Node (co, tl, d, tr) -> co
+| Node (co, t1, d, t2) -> co
 
-type iChangedTo =
+(** val midRedCombine : rbtree -> a -> rbtree -> a -> rbtree -> rbtree **)
+
+let midRedCombine tl x tm y tr =
+  match tm with
+  | Leaf -> assert false (* absurd case *)
+  | Node (co, tl0, d, tr0) -> Node (Red, (Node (Black, tl, x, tl0)), d, (Node (Black, tr0, y, tr)))
+
+(** val red2black : rbtree -> rbtree **)
+
+let red2black = function
+| Leaf -> assert false (* absurd case *)
+| Node (co, tl, d, tr) -> Node (Black, tl, d, tr)
+
+type iChanged =
 | ISameIndx
 | IReddened
 | IBlackInc
 
-(** val bal1 : rbtree -> a -> rbtree -> ( * ) **)
+(** val rebalRight : rbtree -> a -> rbtree -> ( * ) **)
 
-let bal1 tl d tr =
+let rebalRight tl d tr =
   match tl with
   | Leaf -> assert false (* absurd case *)
   | Node (co, tl0, d0, tr0) ->
     (match cof tr0 with
-     | Red -> IReddened,(bal0 tl0 d0 tr0 d tr)
+     | Red -> IReddened,(midRedCombine tl0 d0 tr0 d tr)
      | Black ->
        (match cof tl0 with
-        | Red -> IReddened,(Node (Red, (r2b tl0), d0, (Node (Black, tr0, d, tr))))
+        | Red -> IReddened,(Node (Red, (red2black tl0), d0, (Node (Black, tr0, d, tr))))
         | Black -> ISameIndx,(Node (Black, (Node (Red, tl0, d0, tr0)), d, tr))))
 
-(** val bal2 : rbtree -> a -> rbtree -> ( * ) **)
+(** val rebalLeft : rbtree -> a -> rbtree -> ( * ) **)
 
-let bal2 tl d = function
+let rebalLeft tl d = function
 | Leaf -> assert false (* absurd case *)
 | Node (co, tl0, d0, tr0) ->
   (match cof tl0 with
-   | Red -> IReddened,(bal0 tl d tl0 d0 tr0)
+   | Red -> IReddened,(midRedCombine tl d tl0 d0 tr0)
    | Black ->
      (match cof tr0 with
-      | Red -> IReddened,(Node (Red, (Node (Black, tl, d, tl0)), d0, (r2b tr0)))
+      | Red -> IReddened,(Node (Red, (Node (Black, tl, d, tl0)), d0, (red2black tr0)))
       | Black -> ISameIndx,(Node (Black, tl, d, (Node (Red, tl0, d0, tr0))))))
 
-(** val c2i : color -> iChangedTo **)
+(** val color2change : color -> iChanged **)
 
-let c2i = function
+let color2change = function
 | Red -> IBlackInc
 | Black -> ISameIndx
 
-type ins =
-| IFound
-| IInsed of iChangedTo * rbtree
+type insertResult =
+| FoundByInsert
+| Inserted of iChanged * rbtree
 
-(** val insert : a -> rbtree -> ins **)
+(** val insert : a -> rbtree -> insertResult **)
 
 let rec insert x = function
-| Leaf -> IInsed (IReddened, (Node (Red, Leaf, x, Leaf)))
+| Leaf -> Inserted (IReddened, (Node (Red, Leaf, x, Leaf)))
 | Node (co, tl, d, tr) ->
   (match ordA.compare_spec x d with
-   | CompEqT -> IFound
+   | CompEqT -> FoundByInsert
    | CompLtT ->
      (match insert x tl with
-      | IFound -> IFound
-      | IInsed (i, to0) ->
+      | FoundByInsert -> FoundByInsert
+      | Inserted (i, to0) ->
         (match i with
-         | ISameIndx -> IInsed (ISameIndx, (Node (co, to0, d, tr)))
-         | IReddened -> IInsed ((c2i co), (Node (Black, to0, d, tr)))
-         | IBlackInc -> let i0,to1 = bal1 to0 d tr in IInsed (i0, to1)))
+         | ISameIndx -> Inserted (ISameIndx, (Node (co, to0, d, tr)))
+         | IReddened -> Inserted ((color2change co), (Node (Black, to0, d, tr)))
+         | IBlackInc -> let i0,to1 = rebalRight to0 d tr in Inserted (i0, to1)))
    | CompGtT ->
      (match insert x tr with
-      | IFound -> IFound
-      | IInsed (i, to0) ->
+      | FoundByInsert -> FoundByInsert
+      | Inserted (i, to0) ->
         (match i with
-         | ISameIndx -> IInsed (ISameIndx, (Node (co, tl, d, to0)))
-         | IReddened -> IInsed ((c2i co), (Node (Black, tl, d, to0)))
-         | IBlackInc -> let i0,to1 = bal2 tl d to0 in IInsed (i0, to1))))
+         | ISameIndx -> Inserted (ISameIndx, (Node (co, tl, d, to0)))
+         | IReddened -> Inserted ((color2change co), (Node (Black, tl, d, to0)))
+         | IBlackInc -> let i0,to1 = rebalLeft tl d to0 in Inserted (i0, to1))))
 
-type dChangedTo =
+type dChanged =
 | StillFits
 | Rebalance
 
-(** val bal3 : rbtree -> a -> rbtree -> rbtree **)
+(** val dRotateLeft : rbtree -> a -> rbtree -> rbtree **)
 
-let bal3 tl d = function
+let dRotateLeft tl d = function
 | Leaf -> assert false (* absurd case *)
 | Node (co, tl0, d0, tr0) ->
   (match tl0 with
    | Leaf -> assert false (* absurd case *)
    | Node (co0, tl1, d1, tr1) ->
      (match cof tl1 with
-      | Red -> Node (Black, (bal0 tl d tl1 d1 tr1), d0, tr0)
+      | Red -> Node (Black, (midRedCombine tl d tl1 d1 tr1), d0, tr0)
       | Black -> Node (Black, (Node (Black, (Node (Red, tl, d, tl1)), d1, tr1)), d0, tr0)))
 
-(** val bal4 : rbtree -> a -> rbtree -> rbtree **)
+(** val dRotateRight : rbtree -> a -> rbtree -> rbtree **)
 
-let bal4 tl d tr =
+let dRotateRight tl d tr =
   match tl with
   | Leaf -> assert false (* absurd case *)
   | Node (co, tl0, d0, tr0) ->
@@ -162,97 +162,104 @@ let bal4 tl d tr =
      | Leaf -> assert false (* absurd case *)
      | Node (co0, tl1, d1, tr1) ->
        (match cof tr1 with
-        | Red -> Node (Black, tl0, d0, (bal0 tl1 d1 tr1 d tr))
+        | Red -> Node (Black, tl0, d0, (midRedCombine tl1 d1 tr1 d tr))
         | Black -> Node (Black, tl0, d0, (Node (Black, tl1, d1, (Node (Red, tr1, d, tr)))))))
 
-(** val c2d : color -> dChangedTo **)
+(** val color2dchange : color -> dChanged **)
 
-let c2d = function
+let color2dchange = function
 | Red -> StillFits
 | Black -> Rebalance
 
-(** val r2c : color -> rbtree -> rbtree **)
+(** val colorAs : color -> rbtree -> rbtree **)
 
-let r2c c t' =
+let colorAs c t =
   match c with
-  | Red -> t'
-  | Black -> r2b t'
+  | Red -> t
+  | Black -> red2black t
 
-(** val dfitl : color -> ( * ) -> a -> rbtree -> ( * ) **)
+(** val dRebalRight : color -> rbtree -> a -> rbtree -> ( * ) **)
 
-let dfitl co dr d tr =
+let dRebalRight co tl d tr =
+  match tl with
+  | Leaf -> assert false (* absurd case *)
+  | Node (co0, tl0, d0, tr0) ->
+    (match co0 with
+     | Red -> StillFits,(dRotateRight (Node (Red, tl0, d0, tr0)) d tr)
+     | Black ->
+       (match cof tr0 with
+        | Red -> StillFits,(colorAs co (midRedCombine tl0 d0 tr0 d tr))
+        | Black -> (color2dchange co),(Node (Black, tl0, d0, (Node (Red, tr0, d, tr))))))
+
+(** val dRebalLeft : color -> rbtree -> a -> rbtree -> ( * ) **)
+
+let dRebalLeft co tl d = function
+| Leaf -> assert false (* absurd case *)
+| Node (co0, tl0, d0, tr0) ->
+  (match co0 with
+   | Red -> StillFits,(dRotateLeft tl d (Node (Red, tl0, d0, tr0)))
+   | Black ->
+     (match cof tl0 with
+      | Red -> StillFits,(colorAs co (midRedCombine tl d tl0 d0 tr0))
+      | Black -> (color2dchange co),(Node (Black, (Node (Red, tl, d, tl0)), d0, tr0))))
+
+(** val dFitLeft : color -> ( * ) -> a -> rbtree -> ( * ) **)
+
+let dFitLeft co dr d tr =
   let dc,t = dr in
   (match dc with
    | StillFits -> StillFits,(Node (co, t, d, tr))
-   | Rebalance ->
-     (match tr with
-      | Leaf -> assert false (* absurd case *)
-      | Node (co0, tl0, d0, tr0) ->
-        (match co0 with
-         | Red -> StillFits,(bal3 t d (Node (Red, tl0, d0, tr0)))
-         | Black ->
-           (match cof tl0 with
-            | Red -> StillFits,(r2c co (bal0 t d tl0 d0 tr0))
-            | Black -> (c2d co),(Node (Black, (Node (Red, t, d, tl0)), d0, tr0))))))
+   | Rebalance -> dRebalLeft co t d tr)
 
-(** val dfitr : color -> rbtree -> a -> ( * ) -> ( * ) **)
+(** val dFitRight : color -> rbtree -> a -> ( * ) -> ( * ) **)
 
-let dfitr co tl d = function
+let dFitRight co tl d = function
 | dc,t ->
   (match dc with
    | StillFits -> StillFits,(Node (co, tl, d, t))
-   | Rebalance ->
-     (match tl with
-      | Leaf -> assert false (* absurd case *)
-      | Node (co0, tl0, d0, tr0) ->
-        (match co0 with
-         | Red -> StillFits,(bal4 (Node (Red, tl0, d0, tr0)) d t)
-         | Black ->
-           (match cof tr0 with
-            | Red -> StillFits,(r2c co (bal0 tl0 d0 tr0 d t))
-            | Black -> (c2d co),(Node (Black, tl0, d0, (Node (Red, tr0, d, t))))))))
+   | Rebalance -> dRebalRight co tl d t)
 
-(** val t2d : color -> rbtree -> ( * ) **)
+(** val colorFit : color -> rbtree -> ( * ) **)
 
-let t2d co t =
+let colorFit co t =
   match cof t with
-  | Red -> StillFits,(r2b t)
-  | Black -> (c2d co),t
+  | Red -> StillFits,(red2black t)
+  | Black -> (color2dchange co),t
 
-type dmin =
-| Dmleaf
-| Dmnode of a * ( * )
+type delminResult =
+| NoMin
+| MinDeleted of a * ( * )
 
-(** val delmin : rbtree -> dmin **)
+(** val delmin : rbtree -> delminResult **)
 
 let rec delmin = function
-| Leaf -> Dmleaf
+| Leaf -> NoMin
 | Node (co, tl, d, tr) ->
   (match delmin tl with
-   | Dmleaf -> Dmnode (d, (t2d co tr))
-   | Dmnode (m, dr) -> Dmnode (m, (dfitl co dr d tr)))
+   | NoMin -> MinDeleted (d, (colorFit co tr))
+   | MinDeleted (m, dr) -> MinDeleted (m, (dFitLeft co dr d tr)))
 
-type del =
-| Delfnd of ( * )
-| Delnot
+type deleteResult =
+| DelNotFound
+| Deleted of ( * )
 
-(** val delete : a -> rbtree -> del **)
+(** val delete : a -> rbtree -> deleteResult **)
 
 let rec delete x = function
-| Leaf -> Delnot
+| Leaf -> DelNotFound
 | Node (co, tl, d, tr) ->
   (match ordA.compare_spec x d with
    | CompEqT ->
      let h = delmin tr in
      (match h with
-      | Dmleaf -> Delfnd (t2d co tl)
-      | Dmnode (m, dr) -> Delfnd (dfitr co tl m dr))
+      | NoMin -> Deleted (colorFit co tl)
+      | MinDeleted (m, dr) -> Deleted (dFitRight co tl m dr))
    | CompLtT ->
      (match delete x tl with
-      | Delfnd r -> Delfnd (dfitl co r d tr)
-      | Delnot -> Delnot)
+      | DelNotFound -> DelNotFound
+      | Deleted r -> Deleted (dFitLeft co r d tr))
    | CompGtT ->
      (match delete x tr with
-      | Delfnd r -> Delfnd (dfitr co tl d r)
-      | Delnot -> Delnot))
+      | DelNotFound -> DelNotFound
+      | Deleted r -> Deleted (dFitRight co tl d r)))
 

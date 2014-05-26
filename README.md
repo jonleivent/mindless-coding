@@ -114,7 +114,7 @@ FAQ:
   development - for example, it doesn't require re-implementation of
   any existing types or functions.
 
-- Why AVL nd Red/Black trees?  They are well known, useful, and
+- Why AVL and Red/Black trees?  They are well known, useful, and
   (especially in the case of Red/Black trees) difficult to get right.
   Hence, the ability here to "mindlessly" implement the find, insert,
   delmin, delete and respective rebalancing functions with full

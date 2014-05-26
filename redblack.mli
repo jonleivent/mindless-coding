@@ -36,62 +36,66 @@ type rbtree =
 | Leaf
 | Node of color * rbtree * a * rbtree
 
-type fnd =
+type findResult =
 | Found
 | NotFound
 
-val find : a -> rbtree -> fnd
-
-val bal0 : rbtree -> a -> rbtree -> a -> rbtree -> rbtree
-
-val r2b : rbtree -> rbtree
+val find : a -> rbtree -> findResult
 
 val cof : rbtree -> color
 
-type iChangedTo =
+val midRedCombine : rbtree -> a -> rbtree -> a -> rbtree -> rbtree
+
+val red2black : rbtree -> rbtree
+
+type iChanged =
 | ISameIndx
 | IReddened
 | IBlackInc
 
-val bal1 : rbtree -> a -> rbtree -> ( * )
+val rebalRight : rbtree -> a -> rbtree -> ( * )
 
-val bal2 : rbtree -> a -> rbtree -> ( * )
+val rebalLeft : rbtree -> a -> rbtree -> ( * )
 
-val c2i : color -> iChangedTo
+val color2change : color -> iChanged
 
-type ins =
-| IFound
-| IInsed of iChangedTo * rbtree
+type insertResult =
+| FoundByInsert
+| Inserted of iChanged * rbtree
 
-val insert : a -> rbtree -> ins
+val insert : a -> rbtree -> insertResult
 
-type dChangedTo =
+type dChanged =
 | StillFits
 | Rebalance
 
-val bal3 : rbtree -> a -> rbtree -> rbtree
+val dRotateLeft : rbtree -> a -> rbtree -> rbtree
 
-val bal4 : rbtree -> a -> rbtree -> rbtree
+val dRotateRight : rbtree -> a -> rbtree -> rbtree
 
-val c2d : color -> dChangedTo
+val color2dchange : color -> dChanged
 
-val r2c : color -> rbtree -> rbtree
+val colorAs : color -> rbtree -> rbtree
 
-val dfitl : color -> ( * ) -> a -> rbtree -> ( * )
+val dRebalRight : color -> rbtree -> a -> rbtree -> ( * )
 
-val dfitr : color -> rbtree -> a -> ( * ) -> ( * )
+val dRebalLeft : color -> rbtree -> a -> rbtree -> ( * )
 
-val t2d : color -> rbtree -> ( * )
+val dFitLeft : color -> ( * ) -> a -> rbtree -> ( * )
 
-type dmin =
-| Dmleaf
-| Dmnode of a * ( * )
+val dFitRight : color -> rbtree -> a -> ( * ) -> ( * )
 
-val delmin : rbtree -> dmin
+val colorFit : color -> rbtree -> ( * )
 
-type del =
-| Delfnd of ( * )
-| Delnot
+type delminResult =
+| NoMin
+| MinDeleted of a * ( * )
 
-val delete : a -> rbtree -> del
+val delmin : rbtree -> delminResult
+
+type deleteResult =
+| DelNotFound
+| Deleted of ( * )
+
+val delete : a -> rbtree -> deleteResult
 

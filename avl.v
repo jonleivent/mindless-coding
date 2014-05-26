@@ -45,8 +45,6 @@ Inductive balanceFactor : Set :=
 | HiRight : balanceFactor (*right subtree is 1 higher than left*)
 | NoSubs  : balanceFactor (*iff leaf*).
 
-Hint Constructors balanceFactor.
-
 Notation EB := (##balanceFactor).
 
 (***********************************************************************
@@ -128,8 +126,8 @@ Section Find.
     Recurse t = Node b tl d tr [GoLeft|GoRight].
     Compare x d.
     - (*x=d*) eauto.
-    - (*x<d*) xinv GoLeft; zauto.
-    - (*x>d*) xinv GoRight; zauto.
+    - (*x<d*) xinv GoLeft. all:zauto.
+    - (*x>d*) xinv GoRight. all:zauto.
   Defined.
 
 End Find.
@@ -137,7 +135,7 @@ End Find.
 (************************************************************************)
 
 Definition Bof{b h f}(t : avltree b h f) : {b' : balanceFactor | b=#b'}.
-Proof. destruct t; eexists; reflexivity. Defined.
+Proof. destruct t. all:eexists. all:reflexivity. Defined.
 
 Ltac bsplit x := (*case-analyze a balance factor, given a source of one*)
   match type of x with
@@ -149,11 +147,11 @@ Ltac bsplit x := (*case-analyze a balance factor, given a source of one*)
 (************************************************************************)
 
 (*Only Esorted and lt props are needed when solving Esorted props - so
-convert all avltree hyps into esorted hyps prior to solving Esorted
+convert all avltree hyps into Esorted hyps prior to solving Esorted
 (sorted, when unerased) props. *)
 
 Definition Sof{b h f}(t : avltree b h f) : Esorted f.
-Proof. destruct t; unerase; eauto. Defined.
+Proof. destruct t. all:unerase. all:eauto. Defined.
 
 Ltac SofAll :=
   repeat match goal with
@@ -166,9 +164,9 @@ Hint Extern 20 (Esorted _) => solve_esorted.
 
 (************************************************************************)
 
-Inductive heightChange(hi ho : EN) : Set :=
-| notChanged : ho=hi -> heightChange hi ho
-| yesChanged : ho=ES hi -> heightChange hi ho.
+Inductive heightChange(hlo hhi : EN) : Set :=
+| notChanged : hhi=hlo -> heightChange hlo hhi
+| yesChanged : hhi=ES hlo -> heightChange hlo hhi.
 
 Hint Constructors heightChange.
 
@@ -210,7 +208,9 @@ Section insertion.
 
   (***********************************************************************
   OKins captures allowed relationships between the balance factors and
-  heights of the input and output nodes of insert
+  heights of the input and output nodes of insert.  It is a Prop - and
+  so completely erased: the runtime uses the raised function to
+  determine height changes instead of inverting OKins.
   ***********************************************************************)
   Inductive OKins
   : forall              (inB : EB)(inH : EN)(outB : EB)(outH : EN), Prop :=
@@ -236,7 +236,8 @@ Section insertion.
     all: solve [constructor; xinv oki].
   Defined.
 
-  Inductive insertResult(x : A) : EB -> EN -> EL -> Type :=
+  Inductive insertResult(x : A) 
+  : forall (inB : EB)(inH : EN)(contents : EL), Type :=
   | FoundByInsert{bi hi fl fr} : insertResult x bi hi (fl++^x++fr)
   | Inserted{bi hi fl fr bo ho}
             (to : avltree bo ho (fl++^x++fr))
@@ -295,24 +296,33 @@ Section insertion.
 
 End insertion.
 
-Section deletion.
+(***********************************************************************
+OKdel captures allowed relationships between the balance factors and
+heights of the input and output nodes of delete and delmin.  Like
+OKins, it is a Prop, and the runtime instead gets information about
+deletion height changes from the lowered function.
+***********************************************************************)
+Inductive OKdel 
+: forall               (inB : EB)(inH : EN)(outB : EB)(outH : EN),  Prop :=
+| OKdelEq{b h}  : OKdel b             h     b          h
+| OKdelF2HL{h}  : OKdel #Flat         h     #HiLeft    h
+| OKdelF2HR{h}  : OKdel #Flat         h     #HiRight   h
+| OKdelHL2HR{h} : OKdel #HiLeft       h     #HiRight   h
+| OKdelHL2F{h}  : OKdel #HiLeft  (ES  h)    #Flat      h
+| OKdelHR2HL{h} : OKdel #HiRight      h     #HiLeft    h
+| OKdelHR2F{h}  : OKdel #HiRight (ES  h)    #Flat      h
+| OKdelF2N      : OKdel #Flat    (ES #0)    #NoSubs    #0.
 
-  (***********************************************************************
-  OKdel captures allowed relationships between the balance factors and
-  heights of the input and output nodes of delete and delmin.
-  ***********************************************************************)
-  Inductive OKdel 
-  : forall               (inB : EB)(inH : EN)(outB : EB)(outH : EN),  Prop :=
-  | OKdelEq{b h}  : OKdel b             h     b          h
-  | OKdelF2HL{h}  : OKdel #Flat         h     #HiLeft    h
-  | OKdelF2HR{h}  : OKdel #Flat         h     #HiRight   h
-  | OKdelHL2HR{h} : OKdel #HiLeft       h     #HiRight   h
-  | OKdelHL2F{h}  : OKdel #HiLeft  (ES  h)    #Flat      h
-  | OKdelHR2HL{h} : OKdel #HiRight      h     #HiLeft    h
-  | OKdelHR2F{h}  : OKdel #HiRight (ES  h)    #Flat      h
-  | OKdelF2N      : OKdel #Flat    (ES #0)    #NoSubs    #0.
+Hint Constructors OKdel.
 
-  Hint Constructors OKdel.
+Inductive delout (*intermediate result for delmin and delete*)
+: forall (inB : EB)(inH : EN)(contents : EL), Type :=
+| Delout{bi hi bo ho f}
+        (t : avltree bo ho f){okd : OKdel bi hi bo ho} : delout bi hi f.
+
+Hint Constructors delout.
+
+Section delete_rebalancing.
 
   (* Compare delete input and output to determine if the delete lowered
   the output height.  This can be done by just examining the AVL balance
@@ -326,13 +336,6 @@ Section deletion.
     all: bsplit to.
     all: solve [constructor; xinv okd].
   Defined.
-
-  Inductive delout (*intermediate result for delmin and delete*)
-  : forall (inB : EB)(inH : EN)(contents : EL), Type :=
-  | Delout{bi hi bo ho f}
-          (t : avltree bo ho f){okd : OKdel bi hi bo ho} : delout bi hi f.
-
-  Hint Constructors delout.
 
   (* dRotateRight and dRotateRight differ from rotateRight and
   rotateLeft because they allow the additional case where the higher
@@ -370,7 +373,7 @@ Section deletion.
 
   Hint Resolve dRotateRight dRotateLeft.
 
-  Definition dfitl{bl hl fl0 fl br hr fr b ho}
+  Definition dFitLeft{bl hl fl0 fl br hr fr b ho}
              (dr : delout bl hl fl0)
              (tl : avltree bl hl fl)(d : A)(tr : avltree br hr fr)
              {ok : OKNode b ho hl hr}{s : Esorted(fl0++^d++fr)}
@@ -382,7 +385,7 @@ Section deletion.
     - bsplit ok. all:zauto.
   Defined.
 
-  Definition dfitr{br hr fr0 fr bl hl fl b ho}
+  Definition dFitRight{br hr fr0 fr bl hl fl b ho}
              (dr : delout br hr fr0)
              (tl : avltree bl hl fl)(d : A)(tr : avltree br hr fr)
              {ok : OKNode b ho hl hr}{s : Esorted(fl++^d++fr0)}
@@ -394,7 +397,11 @@ Section deletion.
     - bsplit ok. all:zauto.
   Defined.
 
-  Hint Resolve dfitl dfitr.
+End delete_rebalancing.
+
+Section deletion.
+
+  Hint Resolve dFitLeft dFitRight.
 
   (*Auto-solve OKdels by just inverting anything that might be
   appropriate.  Since OKdel is a Prop, all of the resulting operations
@@ -420,11 +427,11 @@ Section deletion.
     xinv GoLeft. all:zauto.
   Defined.
 
-  Inductive deleteResult(x : A) 
-  : forall (inB : EB)(inH : EN)(contents : EL), Type :=
-  | DelNotFound{b h f}{ni : ENotIn x f} : deleteResult x b h f
-  | Deleted{b h fl fr}
-           (dr : delout b h (fl++fr)) : deleteResult x b h (fl++^x++fr).
+  Inductive deleteResult(x : A)(bi : EB)(hi : EN)
+  : forall (contents : EL), Type :=
+  | DelNotFound{f}{ni : ENotIn x f} : deleteResult x bi hi f
+  | Deleted{fl fr}
+           (dr : delout bi hi (fl++fr)) : deleteResult x bi hi (fl++^x++fr).
 
   Hint Constructors deleteResult.
 
@@ -439,6 +446,8 @@ Section deletion.
 
 End deletion.
 
+(*The fully erased generated code:*)
+Extraction Language Ocaml.
 Set Printing Width 132.
 Extract Inductive heightChange => "bool" [ "false" "true" ].
 Extraction Implicit ifitl [x].

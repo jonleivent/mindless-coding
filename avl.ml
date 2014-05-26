@@ -160,6 +160,10 @@ let rec insert x = function
          | false -> Inserted (Node (b, tl, d, to0))
          | true -> ifitr b tl d to0)))
 
+type delout =
+  avltree
+  (* singleton inductive, whose constructor was Delout *)
+
 (** val lowered : avltree -> avltree -> bool **)
 
 let lowered ti to0 =
@@ -176,10 +180,6 @@ let lowered ti to0 =
      (match s0 with
       | Flat -> true
       | _ -> false))
-
-type delout =
-  avltree
-  (* singleton inductive, whose constructor was Delout *)
 
 (** val dRotateRight : avltree -> a -> avltree -> delout **)
 
@@ -220,9 +220,9 @@ let dRotateLeft tl m = function
    | HiRight -> Node (Flat, (Node (Flat, tl, m, tl0)), d, tr0)
    | NoSubs -> assert false (* absurd case *))
 
-(** val dfitl : balanceFactor -> delout -> avltree -> a -> avltree -> delout **)
+(** val dFitLeft : balanceFactor -> delout -> avltree -> a -> avltree -> delout **)
 
-let dfitl b dr tl d tr =
+let dFitLeft b dr tl d tr =
   match lowered tl dr with
   | false -> Node (b, dr, d, tr)
   | true ->
@@ -232,9 +232,9 @@ let dfitl b dr tl d tr =
      | HiRight -> dRotateLeft dr d tr
      | NoSubs -> assert false (* absurd case *))
 
-(** val dfitr : balanceFactor -> delout -> avltree -> a -> avltree -> delout **)
+(** val dFitRight : balanceFactor -> delout -> avltree -> a -> avltree -> delout **)
 
-let dfitr b dr tl d tr =
+let dFitRight b dr tl d tr =
   match lowered tr dr with
   | false -> Node (b, tl, d, dr)
   | true ->
@@ -255,7 +255,7 @@ let rec delmin = function
 | Node (b, tl, d, tr) ->
   (match delmin tl with
    | NoMin -> MinDeleted (d, tr)
-   | MinDeleted (m, dr) -> MinDeleted (m, (dfitl b dr tl d tr)))
+   | MinDeleted (m, dr) -> MinDeleted (m, (dFitLeft b dr tl d tr)))
 
 type deleteResult =
 | DelNotFound
@@ -271,13 +271,13 @@ let rec delete x = function
      let h = delmin tr in
      (match h with
       | NoMin -> Deleted tl
-      | MinDeleted (m, dr) -> Deleted (dfitr b dr tl m tr))
+      | MinDeleted (m, dr) -> Deleted (dFitRight b dr tl m tr))
    | CompLtT ->
      (match delete x tl with
       | DelNotFound -> DelNotFound
-      | Deleted dr -> Deleted (dfitl b dr tl d tr))
+      | Deleted dr -> Deleted (dFitLeft b dr tl d tr))
    | CompGtT ->
      (match delete x tr with
       | DelNotFound -> DelNotFound
-      | Deleted dr -> Deleted (dfitr b dr tl d tr)))
+      | Deleted dr -> Deleted (dFitRight b dr tl d tr)))
 
