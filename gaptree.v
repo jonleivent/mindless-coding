@@ -203,6 +203,7 @@ Hint Extern 1 (#(Some ?G) = ngap _ ?V) => is_evar V; instantiate (1:=G).
 
 Section insertion.
 
+  (* Gapee: one child has (or can have) a gap while the other doesn't.  *)
   Definition gapee(gl gr : EG) := (gl=#None \/ gl<>gr).
 
   Inductive ires(gi go gl gr : EG) : EN -> EN ->  Set :=
@@ -348,6 +349,101 @@ Section insertion.
   Hint Extern 1 (insertResult _ #None #0 []) => 
     rewrite <- Eapp_nil_l; eapply Inserted; [econstructor|].
 
+  Definition iFitLeft{gl gll glr hl fl0 fr0 gl0 gr0 gr grl grr hr fr ho x c}
+             (tl : gaptree gl gll glr hl (fl0 ++ fr0))
+             (t : gaptree SG0 gl0 gr0 (ES hl) (fl0 ++ ^ x ++ fr0))(d : A)
+             (tr : gaptree gr grl grr hr fr)
+             (ok : OKNode ho gl hl gr hr)(H : lt x d)(H1 : gapee gl0 gr0)
+             (s : Esorted ((fl0 ++ fr0) ++ ^ d ++ fr))
+  : insertResult x # (Some c) ho (fl0 ++ fr0 ++ ^ d ++ fr).
+  Proof.
+    case (Gof tl). intros [[|]|] ->.
+    - assert (ho=ES (ES hl)) by xinv ok. subst ho.
+      econstructor.
+      2:zauto.
+      zauto.
+    - assert (ho=ES hl) by xinv ok. subst ho.
+      case (Gof tr). intros [[|]|] ->.
+      + assert (hl=ES hr) by xinv ok. subst hl.
+        eelim (rotateRight t d tr H1 c). intros ? ? X.  all:zauto.
+      + assert (hl=hr) by xinv ok. subst.
+        econstructor.
+        rewrite group3Eapp.
+        econstructor.
+        exact t.
+        refine (setGap tr). shelve. shelve. shelve.
+        instantiate (2:=ES (ES hr)).
+        instantiate (1:=SG1).
+        all:zauto.
+      + assert (hr=#0 /\ hl=ES #0) by xinv ok. simplify_hyps.
+        eelim (rotateRight t d tr H1 c). intros ? ? X.
+        all:zauto.
+    - assert (hl=#0) by xinv ok. subst.
+      case (Gof tr). intros [[|]|] ->.
+      + zauto.
+        + assert(ho=ES hr) by xinv ok. subst.
+          assert (hr=ES #0) by xinv ok. subst.
+          zauto.
+        + assert (hr=#0) by xinv ok. subst.
+          assert (ho=ES #0) by xinv ok. subst.
+          apply leaf1 in tr. simplify_hyps. 
+          econstructor.
+          rewrite group3Eapp.
+          econstructor.
+          exact t.
+          all:eauto.
+  Unshelve.
+  exact G1. eauto.
+  Qed.
+
+  Definition iFitRight{gl gll glr hl fl gr grl grr hr fl0 fr0 gl0 gr0 ho x c}
+             (tl : gaptree gl gll glr hl fl)(d : A)
+             (tr : gaptree gr grl grr hr (fl0 ++ fr0))
+             (t : gaptree SG0 gl0 gr0 (ES hr) (fl0 ++ ^ x ++ fr0))
+             (ok : OKNode ho gl hl gr hr)(H : lt d x)(H1 : gapee gl0 gr0)
+             (s : Esorted (fl ++ ^ d ++ fl0 ++ fr0))
+  : insertResult x # (Some c) ho ((fl ++ ^ d ++ fl0) ++ fr0).
+  Proof.
+    case (Gof tr). intros [[|]|] ->.
+    - assert (ho=ES (ES hr)) by xinv ok. subst.
+      econstructor.
+      2:zauto.
+      zauto.
+    - assert (ho=ES hr) by xinv ok. subst.
+      case (Gof tl). intros [[|]|] ->.
+      + assert (hr=ES hl) by xinv ok. subst.
+        eelim (rotateLeft tl d t H1 c). intros ? ? X. all:zauto.
+      + assert (hr=hl) by xinv ok. subst.
+        econstructor.
+        rewrite ?Eapp_assoc.
+        econstructor.
+        refine (setGap tl). shelve. shelve. shelve.
+        eassumption.
+        instantiate (1:=SG1).
+        instantiate (1:=ES (ES hl)).
+        all:zauto.
+      + assert (hl=#0 /\ hr=ES #0) by xinv ok. simplify_hyps.
+        eelim (rotateLeft tl d t H1 c). intros ? ? X.
+        all:zauto.
+    - assert (hr=#0) by xinv ok; subst.
+      case (Gof tl). intros [[|]|] ->.
+      + zauto.
+      + assert (ho=ES hl) by xinv ok; subst.
+        assert (hl=ES #0) by xinv ok; subst.
+        zauto.
+      + assert (hl=#0) by xinv ok; subst.
+        assert (ho=ES #0) by xinv ok; subst.
+        apply leaf1 in tl. simplify_hyps.
+        econstructor.
+        rewrite ?Eapp_assoc.
+        econstructor.
+        econstructor.
+        exact t.
+        all:eauto.
+  Unshelve.
+  exact G1. eauto.
+  Qed.
+
   Definition insert(x : A){g gl gr h f}(t : gaptree g gl gr h f)
   : insertResult x g h f.
   Proof.
@@ -361,41 +457,7 @@ Section insertion.
           rewrite ?Eapp_assoc.
           xinv i; intros; simplify_hyps.
           { zauto. }
-          { case (Gof tl). intros [[|]|] ->.
-            - assert (ho=ES (ES hl)) by xinv ok. subst ho.
-              econstructor.
-              2:zauto.
-              zauto.
-            - assert (ho=ES hl) by xinv ok. subst ho.
-              case (Gof tr). intros [[|]|] ->.
-              + assert (hl=ES hr) by xinv ok. subst hl.
-                eelim (rotateRight t d tr H1 c). intros ? ? X.  all:zauto.
-              + assert (hl=hr) by xinv ok. subst.
-                econstructor.
-                rewrite group3Eapp.
-                econstructor.
-                exact t.
-                refine (setGap tr). shelve. shelve. shelve.
-                instantiate (2:=ES (ES hr)).
-                instantiate (1:=SG1).
-                all:zauto.
-              + assert (hr=#0 /\ hl=ES #0) by xinv ok. simplify_hyps.
-                eelim (rotateRight t d tr H1 c). intros ? ? X.
-                all:zauto.
-            - assert (hl=#0) by xinv ok. subst.
-              case (Gof tr). intros [[|]|] ->.
-              + zauto.
-              + assert(ho=ES hr) by xinv ok. subst.
-                assert (hr=ES #0) by xinv ok. subst.
-                zauto.
-              + assert (hr=#0) by xinv ok. subst.
-                assert (ho=ES #0) by xinv ok. subst.
-                apply leaf1 in tr. simplify_hyps. 
-                econstructor.
-                rewrite group3Eapp.
-                econstructor.
-                exact t.
-                all:eauto. }
+          { eapply iFitLeft; eassumption. }
       + (*x>d*)
         xinv GoRight.
         * zauto.
@@ -403,45 +465,7 @@ Section insertion.
           rewrite group3Eapp.
           xinv i; intros; simplify_hyps.
           { zauto. }
-          { case (Gof tr). intros [[|]|] ->.
-            - assert (ho=ES (ES hr)) by xinv ok. subst.
-              econstructor.
-              2:zauto.
-              zauto.
-            - assert (ho=ES hr) by xinv ok. subst.
-              case (Gof tl). intros [[|]|] ->.
-              + assert (hr=ES hl) by xinv ok. subst.
-                eelim (rotateLeft tl d t' H1 c). intros ? ? X. all:zauto.
-              + assert (hr=hl) by xinv ok. subst.
-                econstructor.
-                rewrite ?Eapp_assoc.
-                econstructor.
-                refine (setGap tl). shelve. shelve. shelve.
-                eassumption.
-                instantiate (1:=SG1).
-                instantiate (1:=ES (ES hl)).
-                all:zauto.
-              + assert (hl=#0 /\ hr=ES #0) by xinv ok. simplify_hyps.
-                eelim (rotateLeft tl d t' H1 c). intros ? ? X.
-                all:zauto.
-            - assert (hr=#0) by xinv ok; subst.
-              case (Gof tl). intros [[|]|] ->.
-              + zauto.
-              + assert (ho=ES hl) by xinv ok; subst.
-                assert (hl=ES #0) by xinv ok; subst.
-                zauto.
-              + assert (hl=#0) by xinv ok; subst.
-                assert (ho=ES #0) by xinv ok; subst.
-                apply leaf1 in tl. simplify_hyps.
-                econstructor.
-                rewrite ?Eapp_assoc.
-                econstructor.
-                econstructor.
-                exact t'.
-                all:eauto. }
-  Unshelve.
-    2:eauto.
-    2:eauto.
+          { eapply iFitRight; eassumption. }
   Qed.
 
 End insertion.
@@ -461,18 +485,21 @@ Section deletion.
 
   Hint Constructors delout.
 
-  Definition avlee(gl gr : EG) := gl=SG0 \/ gr=SG0.
+  (* "AVLish" is the condition of being AVL-like - at least one child
+  doesn't have a gap.*)
+  Definition avlish(gl gr : EG) := gl=SG0 \/ gr=SG0.
 
   Inductive tryLowerResult: EG -> EG -> EN -> EL -> Type :=
   | lowered{h f}(t : gaptree SG0 SG0 SG0 (ES h) f) : tryLowerResult SG1 SG1 (ES (ES h)) f
-  | lowerFailed{gl gr h f}: avlee gl gr -> tryLowerResult gl gr h f.
+  | lowerFailed{gl gr h f}: avlish gl gr -> tryLowerResult gl gr h f.
 
   Hint Constructors tryLowerResult.
 
   Hint Extern 10 (_ = ngap _ _) => compute.
 
-  Hint Unfold avlee.
+  Hint Unfold avlish.
 
+  (* If a node's children both have gaps, the node can be lowered by 1. *)
   Definition tryLowering{gl gr h f}
              (t : gaptree SG0 gl gr (ES (ES h)) f)
   : tryLowerResult gl gr (ES (ES h)) f.
@@ -496,12 +523,12 @@ Section deletion.
 
   Definition dRotateLeft{gl gll glr grl grr h fl fr}
              (tl : gaptree gl gll glr h fl)(d : A)(tr : gaptree SG0 grl grr (ES (ES h)) fr)
-             (go : Gap)(H : avlee grl grr){s : Esorted (fl++^d++fr)}
+             (go : Gap)(H : avlish grl grr){s : Esorted (fl++^d++fr)}
   : gapnode #(Some go) (ES (ES (ES h))) (fl ++ ^ d ++ fr).
   Proof.
     xinv tr.
     intros.
-    unfold avlee in H.
+    unfold avlish in H.
     destruct tl0 eqn:E.
     - assert (grr=SG0).
       { destruct H; simplify_hyps. reflexivity. }
@@ -725,12 +752,12 @@ Section deletion.
 
   Definition dRotateRight{gr gll glr grl grr h fl fr}
              (tl : gaptree SG0 gll glr (ES (ES h)) fl)(d : A)(tr : gaptree gr grl grr h fr)
-             (go : Gap)(H : avlee gll glr){s : Esorted (fl++^d++fr)}
+             (go : Gap)(H : avlish gll glr){s : Esorted (fl++^d++fr)}
   : gapnode #(Some go) (ES (ES (ES h))) (fl ++ ^ d ++ fr).
   Proof.
     xinv tl.
     intros.
-    unfold avlee in H.
+    unfold avlish in H.
     destruct tr0 eqn:E.
     - assert (gll=SG0).
       { destruct H; simplify_hyps. reflexivity. } subst gll.
@@ -946,14 +973,15 @@ Section deletion.
 
   Hint Constructors deleteResult.
 
+  (* Only 7 cases, not 9, since NoneG1 and G1None are impossible. *)
   Inductive TwoGaps(g1 g2 : EG) : Set :=
   | NoneNone : g1=#None -> g2=#None -> TwoGaps g1 g2
-  | G0G0 : g1=SG0 -> g2=SG0 -> TwoGaps g1 g2
-  | G1G1 : g1=SG1 -> g2=SG1 -> TwoGaps g1 g2
-  | NoneG0 : g1=#None -> g2=SG0 -> TwoGaps g1 g2
-  | G1G0 : g1=SG1 -> g2=SG0 -> TwoGaps g1 g2
-  | G0None : g1=SG0 -> g2=#None -> TwoGaps g1 g2
-  | G0G1 : g1=SG0 -> g2=SG1 -> TwoGaps g1 g2.
+  | G0G0     : g1=SG0   -> g2=SG0   -> TwoGaps g1 g2
+  | G1G1     : g1=SG1   -> g2=SG1   -> TwoGaps g1 g2
+  | NoneG0   : g1=#None -> g2=SG0   -> TwoGaps g1 g2
+  | G1G0     : g1=SG1   -> g2=SG0   -> TwoGaps g1 g2
+  | G0None   : g1=SG0   -> g2=#None -> TwoGaps g1 g2
+  | G0G1     : g1=SG0   -> g2=SG1   -> TwoGaps g1 g2.
 
   Hint Constructors TwoGaps.
 
@@ -967,100 +995,110 @@ Section deletion.
     all:eauto.
     all:exfalso; xinv ok.
   Defined.
- 
+
+  (* Decide whether to use delmin or delmax to replace the deleted
+  element *)
+  Definition delMinOrMax{gl gll glr hl grl grr hr gr ho fl fr}(g : Gap)
+             (tl : gaptree gl gll glr hl fl)(d : A)(tr : gaptree gr grl grr hr fr)
+             (ok : OKNode ho gl hl gr hr)(s : Esorted (fl ++ ^ d ++ fr))
+  : delout # (Some g) ho (fl ++ fr).
+  Proof.
+    case (Gof2 tl tr ok); intros; subst.
+    - assert (ho=ES #0/\hl=#0/\hr=#0) by xinv ok. simplify_hyps.
+      assert (fl=[]) by xinv tl. subst.
+      assert (fr=[]) by xinv tr. subst.
+      rewrite Eapp_nil_l.
+      econstructor.
+      econstructor.
+      econstructor.
+      intro. discriminate_erasable.
+    - assert (hr=hl) by xinv ok. subst.
+      assert (ho=ES hl) by xinv ok. subst.
+      Call (delmin tr).
+      intro X. xinv X.
+      intros t' r.
+      xinv r.
+      + zauto.
+      + intro e.
+        econstructor.
+        econstructor.
+        refine (setGap tl). exact G0. 2:reflexivity.
+        eassumption.
+        simpl. instantiate(1:=ES(ES ho)).
+        3:instantiate (1:=g).
+        all:eauto.
+        destruct go. destruct o; simpl; eauto.
+        assert (g0=G1).
+        { destruct g0; simplify_hyps; eauto. } subst.
+        xinv t'. intros. xinv ok0.
+    - assert (hr=hl) by xinv ok. subst.
+      assert (ho=ES(ES hl)) by xinv ok. subst.
+      Call (delmin tr).
+      intro X. xinv X.
+      intros t' r.
+      xinv r.
+      + zauto.
+      + intro e.
+        econstructor.
+        econstructor.
+        refine (setGap tl). exact G0. 2:reflexivity.
+        eassumption.
+        simpl. instantiate(1:=ES(ES ho)).
+        3:instantiate (1:=G1).
+        all:eauto.
+        destruct go. destruct o; simpl; eauto.
+        destruct g0. xinv t'; intros; xinv ok0.
+        simplify_hyps.
+    - assert (hl=#0/\hr=ES #0/\ho=ES(ES #0)) by xinv ok. simplify_hyps.
+      assert (fl=[]) by xinv tl. subst.
+      rewrite Eapp_nil_l.
+      econstructor.
+      refine (setGap tr). exact G1. 2:simpl; reflexivity.
+      econstructor. intro. discriminate_erasable.
+    - assert (ho=ES hr/\hr=ES hl) by xinv ok. simplify_hyps.
+      Call (delmin tr).
+      intro X. xinv X.
+      intros t' r.
+      econstructor.
+      econstructor.
+      eassumption.
+      eassumption.
+      instantiate (1:=ES(ES hl)).
+      all:eauto.
+      xinv r.
+      intro e.
+      destruct go. destruct o; subst; eauto.
+      destruct g0. xinv tl; intros; xinv ok0.
+      simplify_hyps.
+    - assert (ho=ES hl/\hl=ES #0/\hr=#0) by xinv ok. simplify_hyps.
+      assert (fr=[]) by xinv tr. subst.
+      rewrite Eapp_nil_r.
+      econstructor.
+      refine (setGap tl). exact G1. 2:simpl; reflexivity.
+      econstructor. intro. discriminate_erasable.
+    - assert (hl=ES hr/\ho=ES hl) by xinv ok. simplify_hyps.
+      Call (delmax tl).
+      intro X. xinv X.
+      rewrite Eapp_assoc.
+      intros t' r.
+      econstructor.
+      econstructor.
+      eassumption.
+      eassumption.
+      instantiate (1:=ES(ES hr)).
+      all:eauto.
+      xinv r. intro e.
+      destruct go. destruct o; subst; eauto.
+      destruct g0. xinv tr; intros; xinv ok0.
+      simplify_hyps.
+  Qed.
+
   Definition delete(x : A){g gl gr h f}(t : gaptree g gl gr h f) : deleteResult x g h f.
   Proof.
     Recurse t = Node g tl d tr [GoLeft|GoRight].
     Compare x d.
     - eapply Deleted.
-      case (Gof2 tl tr ok); intros; subst.
-      + assert (ho=ES #0/\hl=#0/\hr=#0) by xinv ok. simplify_hyps.
-        assert (fl=[]) by xinv tl. subst.
-        assert (fr=[]) by xinv tr. subst.
-        rewrite Eapp_nil_l.
-        econstructor.
-        econstructor.
-        econstructor.
-        intro. discriminate_erasable.
-      + assert (hr=hl) by xinv ok. subst.
-        assert (ho=ES hl) by xinv ok. subst.
-        Call (delmin tr).
-        intro X. xinv X.
-        intros t' r.
-        xinv r.
-        { zauto. }
-        { intro e.
-          econstructor.
-          econstructor.
-          refine (setGap tl). exact G0. 2:reflexivity.
-          eassumption.
-          simpl. instantiate(1:=ES(ES ho)).
-          3:instantiate (1:=g).
-          all:eauto.
-          destruct go. destruct o; simpl; eauto.
-          assert (g0=G1).
-          { destruct g0; simplify_hyps; eauto. } subst.
-          xinv t'. intros. xinv ok0. }
-      + assert (hr=hl) by xinv ok. subst.
-        assert (ho=ES(ES hl)) by xinv ok. subst.
-        Call (delmin tr).
-        intro X. xinv X.
-        intros t' r.
-        xinv r.
-        { zauto. }
-        { intro e.
-          econstructor.
-          econstructor.
-          refine (setGap tl). exact G0. 2:reflexivity.
-          eassumption.
-          simpl. instantiate(1:=ES(ES ho)).
-          3:instantiate (1:=G1).
-          all:eauto.
-          destruct go. destruct o; simpl; eauto.
-          destruct g0. xinv t'; intros; xinv ok0.
-          simplify_hyps. }
-      + assert (hl=#0/\hr=ES #0/\ho=ES(ES #0)) by xinv ok. simplify_hyps.
-        assert (fl=[]) by xinv tl. subst.
-        rewrite Eapp_nil_l.
-        econstructor.
-        refine (setGap tr). exact G1. 2:simpl; reflexivity.
-        econstructor. intro. discriminate_erasable.
-      + assert (ho=ES hr/\hr=ES hl) by xinv ok. simplify_hyps.
-        Call (delmin tr).
-        intro X. xinv X.
-        intros t' r.
-        econstructor.
-        econstructor.
-        eassumption.
-        eassumption.
-        instantiate (1:=ES(ES hl)).
-        all:eauto.
-        xinv r.
-        intro e.
-        destruct go. destruct o; subst; eauto.
-        destruct g0. xinv tl; intros; xinv ok0.
-        simplify_hyps.
-      + assert (ho=ES hl/\hl=ES #0/\hr=#0) by xinv ok. simplify_hyps.
-        assert (fr=[]) by xinv tr. subst.
-        rewrite Eapp_nil_r.
-        econstructor.
-        refine (setGap tl). exact G1. 2:simpl; reflexivity.
-        econstructor. intro. discriminate_erasable.
-      + assert (hl=ES hr/\ho=ES hl) by xinv ok. simplify_hyps.
-        Call (delmax tl).
-        intro X. xinv X.
-        rewrite Eapp_assoc.
-        intros t' r.
-        econstructor.
-        econstructor.
-        eassumption.
-        eassumption.
-        instantiate (1:=ES(ES hr)).
-        all:eauto.
-        xinv r. intro e.
-        destruct go. destruct o; subst; eauto.
-        destruct g0. xinv tr; intros; xinv ok0.
-        simplify_hyps.
+      eapply delMinOrMax; eassumption.
     - xinv GoLeft.
       + eauto.
       + intro X. xinv X.
@@ -1069,13 +1107,7 @@ Section deletion.
         eapply Deleted.
         rewrite <- Eapp_assoc.
         xinv r; intros; subst.
-        * econstructor.
-          econstructor.
-          exact t'.
-          exact tr.
-          eassumption.
-          eauto.
-          eauto.
+        * zauto.
         * eapply dFitLeft. all:try eassumption.
           eauto.
     - xinv GoRight.
@@ -1086,17 +1118,12 @@ Section deletion.
         eapply Deleted.
         rewrite ?Eapp_assoc.
         xinv r; intros; subst.
-        * econstructor.
-          econstructor.
-          exact tl.
-          exact t'.
-          eassumption.
-          eauto.
-          eauto.
+        * zauto.
         *eapply dFitRight. all:try eassumption.
          eauto.
   Qed.
 End deletion.
+
 Extract Inductive delout => "( * )" [ "(,)" ].
 Set Printing Width 150.
 Extraction "gaptree.ml" find insert delmin delete.

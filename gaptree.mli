@@ -74,6 +74,10 @@ val rotateRight : gaptree -> a -> gaptree -> gap -> gapnode
 
 val rotateLeft : gaptree -> a -> gaptree -> gap -> gapnode
 
+val iFitLeft : a -> gap -> gaptree -> gaptree -> a -> gaptree -> insertResult
+
+val iFitRight : a -> gap -> gaptree -> a -> gaptree -> gaptree -> insertResult
+
 val insert : a -> gaptree -> insertResult
 
 type dres =
@@ -120,6 +124,8 @@ type twoGaps =
 | G0G1
 
 val gof2 : gaptree -> gaptree -> twoGaps
+
+val delMinOrMax : gap -> gaptree -> a -> gaptree -> ( * )
 
 val delete : a -> gaptree -> deleteResult
 

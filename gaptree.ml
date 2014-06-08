@@ -125,6 +125,44 @@ let rotateLeft tl d tr go =
         | G1 -> Node (go, (Node (G0, (setGap G0 tl), d, (setGap G0 tl0))), d0, tr0)
         | G0 -> Node (go, (Node (G0, (setGap G0 tl), d, g0_1)), d1, (Node (G0, g0_2, d0, (setGap G0 tr0))))))
 
+(** val iFitLeft : a -> gap -> gaptree -> gaptree -> a -> gaptree -> insertResult **)
+
+let iFitLeft x c tl t d tr =
+  match gof tl with
+  | Some g ->
+    (match g with
+     | G1 -> Inserted ((Node (c, t, d, tr)), ISameH)
+     | G0 ->
+       (match gof tr with
+        | Some g0 ->
+          (match g0 with
+           | G1 -> Inserted ((rotateRight t d tr c), ISameH)
+           | G0 -> Inserted ((Node (G0, t, d, (setGap G1 tr))), Higher))
+        | None -> Inserted ((rotateRight t d tr c), ISameH)))
+  | None ->
+    (match gof tr with
+     | Some g -> Inserted ((Node (c, t, d, tr)), ISameH)
+     | None -> Inserted ((Node (G0, t, d, Leaf)), Higher))
+
+(** val iFitRight : a -> gap -> gaptree -> a -> gaptree -> gaptree -> insertResult **)
+
+let iFitRight x c tl d tr t =
+  match gof tr with
+  | Some g ->
+    (match g with
+     | G1 -> Inserted ((Node (c, tl, d, t)), ISameH)
+     | G0 ->
+       (match gof tl with
+        | Some g0 ->
+          (match g0 with
+           | G1 -> Inserted ((rotateLeft tl d t c), ISameH)
+           | G0 -> Inserted ((Node (G0, (setGap G1 tl), d, t)), Higher))
+        | None -> Inserted ((rotateLeft tl d t c), ISameH)))
+  | None ->
+    (match gof tl with
+     | Some g -> Inserted ((Node (c, tl, d, t)), ISameH)
+     | None -> Inserted ((Node (G0, Leaf, d, t)), Higher))
+
 (** val insert : a -> gaptree -> insertResult **)
 
 let rec insert x = function
@@ -138,44 +176,14 @@ let rec insert x = function
       | Inserted (t0, i) ->
         (match i with
          | ISameH -> Inserted ((Node (g, t0, d, tr)), ISameH)
-         | Higher ->
-           (match gof tl with
-            | Some g0 ->
-              (match g0 with
-               | G1 -> Inserted ((Node (g, t0, d, tr)), ISameH)
-               | G0 ->
-                 (match gof tr with
-                  | Some g1 ->
-                    (match g1 with
-                     | G1 -> Inserted ((rotateRight t0 d tr g), ISameH)
-                     | G0 -> Inserted ((Node (G0, t0, d, (setGap G1 tr))), Higher))
-                  | None -> Inserted ((rotateRight t0 d tr g), ISameH)))
-            | None ->
-              (match gof tr with
-               | Some g0 -> Inserted ((Node (g, t0, d, tr)), ISameH)
-               | None -> Inserted ((Node (G0, t0, d, Leaf)), Higher)))))
+         | Higher -> iFitLeft x g tl t0 d tr))
    | CompGtT ->
      (match insert x tr with
       | FoundByInsert -> FoundByInsert
       | Inserted (t0, i) ->
         (match i with
          | ISameH -> Inserted ((Node (g, tl, d, t0)), ISameH)
-         | Higher ->
-           (match gof tr with
-            | Some g0 ->
-              (match g0 with
-               | G1 -> Inserted ((Node (g, tl, d, t0)), ISameH)
-               | G0 ->
-                 (match gof tl with
-                  | Some g1 ->
-                    (match g1 with
-                     | G1 -> Inserted ((rotateLeft tl d t0 g), ISameH)
-                     | G0 -> Inserted ((Node (G0, (setGap G1 tl), d, t0)), Higher))
-                  | None -> Inserted ((rotateLeft tl d t0 g), ISameH)))
-            | None ->
-              (match gof tl with
-               | Some g0 -> Inserted ((Node (g, tl, d, t0)), ISameH)
-               | None -> Inserted ((Node (G0, Leaf, d, t0)), Higher))))))
+         | Higher -> iFitRight x g tl d tr t0)))
 
 type dres =
 | DSameH
@@ -358,46 +366,49 @@ let gof2 t1 t2 =
         | G0 -> NoneG0)
      | None -> NoneNone)
 
+(** val delMinOrMax : gap -> gaptree -> a -> gaptree -> ( * ) **)
+
+let delMinOrMax g tl d tr =
+  match gof2 tl tr with
+  | NoneNone -> Leaf,Lower
+  | G0G0 ->
+    let h = delmin tr in
+    (match h with
+     | NoMin -> assert false (* absurd case *)
+     | MinDeleted (m, dr) ->
+       let t,dc = dr in
+       (match dc with
+        | DSameH -> (Node (g, tl, m, t)),DSameH
+        | Lower -> (Node (g, (setGap G0 tl), m, t)),DSameH))
+  | G1G1 ->
+    let h = delmin tr in
+    (match h with
+     | NoMin -> assert false (* absurd case *)
+     | MinDeleted (m, dr) ->
+       let t,dc = dr in
+       (match dc with
+        | DSameH -> (Node (g, tl, m, t)),DSameH
+        | Lower -> (Node (G1, (setGap G0 tl), m, t)),Lower))
+  | NoneG0 -> (setGap G1 tr),Lower
+  | G1G0 ->
+    let h = delmin tr in
+    (match h with
+     | NoMin -> assert false (* absurd case *)
+     | MinDeleted (m, dr) -> let t,dc = dr in (Node (g, tl, m, t)),DSameH)
+  | G0None -> (setGap G1 tl),Lower
+  | G0G1 ->
+    let h = delmax tl in
+    (match h with
+     | NoMax -> assert false (* absurd case *)
+     | MaxDeleted (m, dr) -> let t,dc = dr in (Node (g, t, m, tr)),DSameH)
+
 (** val delete : a -> gaptree -> deleteResult **)
 
 let rec delete x = function
 | Leaf -> DelNotFound
 | Node (g, tl, d, tr) ->
   (match ordA.compare_spec x d with
-   | CompEqT ->
-     Deleted
-       (match gof2 tl tr with
-        | NoneNone -> Leaf,Lower
-        | G0G0 ->
-          let h = delmin tr in
-          (match h with
-           | NoMin -> assert false (* absurd case *)
-           | MinDeleted (m, dr) ->
-             let t0,dc = dr in
-             (match dc with
-              | DSameH -> (Node (g, tl, m, t0)),DSameH
-              | Lower -> (Node (g, (setGap G0 tl), m, t0)),DSameH))
-        | G1G1 ->
-          let h = delmin tr in
-          (match h with
-           | NoMin -> assert false (* absurd case *)
-           | MinDeleted (m, dr) ->
-             let t0,dc = dr in
-             (match dc with
-              | DSameH -> (Node (g, tl, m, t0)),DSameH
-              | Lower -> (Node (G1, (setGap G0 tl), m, t0)),Lower))
-        | NoneG0 -> (setGap G1 tr),Lower
-        | G1G0 ->
-          let h = delmin tr in
-          (match h with
-           | NoMin -> assert false (* absurd case *)
-           | MinDeleted (m, dr) -> let t0,dc = dr in (Node (g, tl, m, t0)),DSameH)
-        | G0None -> (setGap G1 tl),Lower
-        | G0G1 ->
-          let h = delmax tl in
-          (match h with
-           | NoMax -> assert false (* absurd case *)
-           | MaxDeleted (m, dr) -> let t0,dc = dr in (Node (g, t0, m, tr)),DSameH))
+   | CompEqT -> Deleted (delMinOrMax g tl d tr)
    | CompLtT ->
      (match delete x tl with
       | DelNotFound -> DelNotFound
