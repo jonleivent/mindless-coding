@@ -58,7 +58,7 @@ Qed.
 
 Ltac unerase_hyp H :=
   hnf in H; try simpl in H;
-  first [apply Erasable_inj in H
+  first [match type of H with _=_ => apply Erasable_inj in H end
         |induction H as [H] using Erasable_elim
         |match type of H with
              ex _ =>
@@ -159,7 +159,7 @@ Ltac simplify_1hyp := match goal with
            | H : ?X = ?Y |- _ =>
              first [subst X
                    |subst Y
-                   |apply Einjection in H; [|solve [eauto]]
+                   |apply Einjection in H; [|solve [clear H; intros ? ? H; injection H; trivial]]
                    |discriminate_erasable_hyp H
                    |discriminate H
                    |injection H; clear H; intro H

@@ -1,0 +1,115 @@
+(***********************************************************************
+
+Copyright (c) 2014 Jonathan Leivent
+
+Permission is hereby granted, free of charge, to any person obtaining
+a copy of this software and associated documentation files (the
+"Software"), to deal in the Software without restriction, including
+without limitation the rights to use, copy, modify, merge, publish,
+distribute, sublicense, and/or sell copies of the Software, and to
+permit persons to whom the Software is furnished to do so, subject to
+the following conditions:
+
+The above copyright notice and this permission notice shall be
+included in all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE
+LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
+WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+***********************************************************************)
+
+Gap Tree: A new self-balancing binary search tree structure discovered
+(and proved) with the assistance of Coq.
+
+Gap trees are similar to both AVL and red-black trees, in that all are
+semi-balanced to the point where the longest branch is not more than
+twice as long as the shortest.  They all have the same O(log N)
+asymptotic worst-case performance for find, insert, and delete.
+
+Like red-black trees, gap trees require only one additional bit of
+balancing information per non-leaf node (AVL trees require two bits
+per non-leaf node).  With gap trees, the bit on the root node is not
+used.
+
+The balancing rule for gap trees is that the height of a parent node
+is H+1 or H+2 when a child is at height H.  The rule applies
+symmetrically to both children, which thus can differ in height by at
+most 1.  Note how similar this is to the AVL tree balancing rules,
+such that gap trees add one additional state per node beyond what AVL
+trees allow: the parent can be at H+2 when both children are at H (if
+neither child is a leaf - see below).
+
+The additional bit of balancing information per non-leaf node on gap
+trees can be interpreted as whether or not there is a gap between that
+node and its parent.  The presence of a gap would put the parent at
+height H+2 when the child is at height H.  The absence of a gap would
+put the parent at height H+1 when the child is at height H.  
+
+Two other rules are needed to accommodate the absence of balancing
+bits on leaves.  If both of a node's children are leaves, then the
+node is at height 1.  If only one of a node's children is a leaf, then
+the node is at height 2.  Since leaves are regarded as being at height
+0, the above balancing rule (parent at +1 or +2 vs. either child) is
+maintained.
+
+It is easy to see from the OCaml code extracted for insert and delete
+(delmin and delmax as well) functions that there is at most one
+rotation needed to rebalance a gap tree following an insert or a
+delete.  The reasoning is as follows: For the insert and delete (and
+delmin and delmax) functions, the result includes a binary-like type
+(ires for insert, dres for the others) that has one constructor
+(ISameH, DSameH respectively) that denotes that the returned subtree
+from that call has not had its height changed vs. that call's input
+subtree.  Once a "Same" state is returned for a subtree, it will
+continue to be returned up to the root of the tree.  Also note that
+following any rotate function call, the returned value is ISameH or
+DSameH - and that no rotate calls occur in the caller when it receives
+a ISameH or DSameH value.  Thus, after the first rotate call, no
+further rebalancing happens.
+
+I suspect that gap trees are less balanced than red-black trees (which
+are known to be less balanced than AVL trees), and that this should
+make insert and delete operations on gap trees faster than those on
+red-black trees, due to the requirement for fewer rebalancing
+operations.  Find operations are probably slower on gap trees.
+
+I also suspect that gap tree functions should be easier to
+implement and less complex than their red-black tree counterparts.
+This conjecture is based on inspection of the corresponding
+rebalancing functions in the generated OCaml output.
+
+I have not yet analyzed the performance of gap tree functions in more
+detail, or attempted to demonstrate the above conjectures.  I also
+have not yet executed the generated OCaml code in any of the cases
+(red-black, AVL or gap tree), trusting Coq instead - but of course
+executing the OCaml code should be done at some point. I wouldn't mind
+at all if someone else found these tasks interesting enough to do
+before I get to them.
+
+This discovery was accidental.  I was experimenting with the "mindless
+coding" techniques I have previously used to generate (verified and
+erased) OCaml code for red-black and AVL trees from Coq proofs, on
+what I thought would be a failure case.  After all, since they appear
+easier to understand than either red-black or AVL trees, gap trees, if
+they work, should have been discovered long ago (1962 for AVL trees,
+1972 for red-black trees).  I was anticipating that there would be no
+way to prove the necessary O(1) rebalancing functions, and was instead
+curious as to what the failures would look like.  But, there were no
+failures.
+
+One slightly unfortunate outcome appears to be that the gap tree
+proofs are far harder to automate in Coq than were the red-black or
+AVL tree proofs.  Also, the time Coq needs to verify the proofs is
+much longer by a factor of about 20 for gap trees.  But, the proofs,
+tedious though they were without much automation assistance, were
+still "mindless" in that I obviously didn't have the algorithm in mind
+while solving each subgoal.  I don't mean to imply that each subgoal
+was trivial to solve - some were quite difficult.  But the type of
+difficulty feels more like that experienced during a difficult game of
+Sudoku than a difficult programming task.
+

@@ -277,11 +277,36 @@ Section defs.
     eassumption.
   Qed.
 
+  Lemma lts2lt : forall a b, [a] <! b <-> lt a b.
+  Proof.
+    intros a b.
+    split.
+    - intros H.
+      inversion H; subst; assumption.
+    - intros H.
+      constructor.
+      assumption.
+  Qed.
+
+  Lemma slt2lt : forall a b, a !< [b] <-> lt a b.
+  Proof.
+    intros a b.
+    split.
+    - intros H.
+      inversion H; subst; assumption.
+    - intros H.
+      constructor.
+      assumption.
+  Qed.
+
 End defs.
 
 Create HintDb SolveSortedDB discriminated.
 
-Hint Rewrite @ltssplit @sorted2both @rwslts @sorted2slt @sorted2both2 : solveSortedDB.
+Hint Rewrite 
+     @ltssplit @sorted2both @rwslts @sorted2lts @sorted2slt @sorted2both2 @lts2lt @slt2lt
+: solveSortedDB.
+
 Hint Rewrite <- app_assoc : solveSortedDB.
 
 Hint Constructors LocallySorted : solveSortedDB.
@@ -319,6 +344,9 @@ Section Examples.
   Proof. solve_sorted. Qed.
 
   Goal forall p q r a b, sorted (p++[a]++q++[b]++r) -> sorted(p++[a]++q++r).
+  Proof. solve_sorted. Qed.
+
+  Goal forall p q a b, sorted ((p++[a])++[b]++q) -> sorted(p++[a]++q).
   Proof. solve_sorted. Qed.
 
 End Examples.

@@ -35,7 +35,7 @@ usually sufficient for the programmer to make progress to the next
 subgoal.
 
 Perhaps the best illustration of this "mindless" point is the
-implementation of the complex rebalancing functions for Red/Black
+implementation of the complex rebalancing functions for Red-Black
 trees, which are widely viewed as difficult to do correctly.  These
 were implemented using this "mindless-coding" technique without
 relying on any outside explanatory material or implementations.  The
@@ -51,10 +51,11 @@ engineering practices.  Hopefully, this will help transfer the
 technology of dependent types and theorem proving to a much wider
 audience.
 
-So far, this demonstration includes two examples: AVL trees (Coq
-source: avl.v, extracted OCaml: avl.ml and avl.mli) and Red/Black
-trees (Coq source: redblack.v, extracted OCaml: redblack.ml and
-redblack.mli).
+So far, this demonstration includes three examples: AVL trees (Coq
+source: avl.v, extracted OCaml: avl.ml and avl.mli), Red-Black trees
+(Coq source: redblack.v, extracted OCaml: redblack.ml and
+redblack.mli), and a newly discovered relative, gap trees (Coq source:
+gaptree.v, extracted OCaml: gaptree.ml and gaptree.mli).
 
 FAQ:
 
@@ -114,9 +115,11 @@ FAQ:
   development - for example, it doesn't require re-implementation of
   any existing types or functions.
 
-- Why AVL and Red/Black trees?  They are well known, useful, and
-  (especially in the case of Red/Black trees) difficult to get right.
+- Why AVL and Red-Black trees?  They are well known, useful, and
+  (especially in the case of Red-Black trees) difficult to get right.
   Hence, the ability here to "mindlessly" implement the find, insert,
   delmin, delete and respective rebalancing functions with full
   erasability of all proof-related paraphernalia, yet with
   simple-to-read proofs, is a non-trivial accomplishment.
+
+- What are gap trees?  See gaptree.txt for details.

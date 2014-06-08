@@ -97,6 +97,7 @@ COMPILE_VFILES=common.v\
 
 VFILES:=redblack.v\
   avl.v\
+  gaptree.v\
   $(COMPILE_VFILES)
 
 -include $(addsuffix .d,$(VFILES))
@@ -126,6 +127,7 @@ all: extracts
 extracts: $(VOFILES)
 	$(COQBIN)coqtop -batch -l avl.v
 	$(COQBIN)coqtop -batch -l redblack.v
+	$(COQBIN)coqtop -batch -l gaptree.v
 
 quick:
 	$(MAKE) -f $(firstword $(MAKEFILE_LIST)) all VO=vi
