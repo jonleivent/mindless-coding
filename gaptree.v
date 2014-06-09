@@ -57,7 +57,7 @@ Hint Extern 100 (OKNode _ _ _ _ _) =>
 match goal with H : (OKNode _ _ _ _ _) |- _ =>  xinv H end.
 
 (* The gaptree type exposes the gaps of each child as indices in the
-parent to make the "gapee" and "avlee" props easier to work with. *)
+parent to make the "gapee" and "avlish" props easier to work with. *)
 
 Inductive gaptree : forall (ogap logap rogap : EG)(height : EN)(contents : EL), Type :=
 | Leaf : gaptree #None #None #None #0 []
