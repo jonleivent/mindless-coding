@@ -107,10 +107,10 @@ let rotateRight tl d tr go =
   | Node (g0, tl0, d0, tr0) ->
     (match tr0 with
      | Leaf -> Node (go, tl0, d0, (Node (G0, Leaf, d, Leaf)))
-     | Node (g1, g0_1, d1, g0_2) ->
+     | Node (g1, x, x0, x1) ->
        (match g1 with
         | G1 -> Node (go, tl0, d0, (Node (G0, (setGap G0 tr0), d, (setGap G0 tr))))
-        | G0 -> Node (go, (Node (G0, (setGap G0 tl0), d0, g0_1)), d1, (Node (G0, g0_2, d, (setGap G0 tr))))))
+        | G0 -> Node (go, (Node (G0, (setGap G0 tl0), d0, x)), x0, (Node (G0, x1, d, (setGap G0 tr))))))
 
 (** val rotateLeft : gaptree -> a -> gaptree -> gap -> gapnode **)
 
@@ -120,10 +120,10 @@ let rotateLeft tl d tr go =
   | Node (g0, tl0, d0, tr0) ->
     (match tl0 with
      | Leaf -> Node (go, (Node (G0, Leaf, d, Leaf)), d0, tr0)
-     | Node (g1, g0_1, d1, g0_2) ->
+     | Node (g1, x, x0, x1) ->
        (match g1 with
         | G1 -> Node (go, (Node (G0, (setGap G0 tl), d, (setGap G0 tl0))), d0, tr0)
-        | G0 -> Node (go, (Node (G0, (setGap G0 tl), d, g0_1)), d1, (Node (G0, g0_2, d0, (setGap G0 tr0))))))
+        | G0 -> Node (go, (Node (G0, (setGap G0 tl), d, x)), x0, (Node (G0, x1, d0, (setGap G0 tr0))))))
 
 (** val iFitLeft : a -> gap -> gaptree -> gaptree -> a -> gaptree -> insertResult **)
 
