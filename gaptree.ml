@@ -218,17 +218,17 @@ let dRotateLeft tl d tr go =
   | Leaf -> assert false (* absurd case *)
   | Node (g, tl0, d0, tr0) ->
     (match tl0 with
-     | Leaf -> Node (go, (Node (G1, tl, d, Leaf)), d0, (setGap G1 tr0))
-     | Node (g1, g2, d1, g3) ->
-       (match g1 with
+     | Leaf -> Node (go, (Node (G1, Leaf, d, Leaf)), d0, (setGap G1 tr0))
+     | Node (g0, x, x0, x1) ->
+       (match g0 with
         | G1 -> Node (go, (Node (G0, (regapAs tl tl0), d, tl0)), d0, (setGap G1 tr0))
         | G0 ->
           (match gof tr0 with
-           | Some g0 ->
-             (match g0 with
-              | G1 -> Node (go, (Node (G1, (setGap G0 tl), d, g2)), d1, (Node (G1, g3, d0, (setGap G0 tr0))))
+           | Some g1 ->
+             (match g1 with
+              | G1 -> Node (go, (Node (G1, (setGap G0 tl), d, x)), x0, (Node (G1, x1, d0, (setGap G0 tr0))))
               | G0 -> Node (go, (Node (G0, (setGap G1 tl), d, tl0)), d0, (setGap G1 tr0)))
-           | None -> Node (go, (Node (G1, tl, d, g2)), d1, (Node (G1, g3, d0, tr0))))))
+           | None -> Node (go, (Node (G1, Leaf, d, Leaf)), x0, (Node (G1, Leaf, d0, Leaf))))))
 
 type delminResult =
 | NoMin
@@ -252,7 +252,7 @@ let dFitLeft g tl t' d tr =
               | LowerFailed -> (dRotateLeft t' d tr g),DSameH)
            | G0 -> (Node (g, t', d, tr)),DSameH)
         | None -> assert false (* absurd case *)))
-  | None -> (Node (G1, t', d, tr)),Lower
+  | None -> (Node (G1, Leaf, d, Leaf)),Lower
 
 (** val delmin : gaptree -> delminResult **)
 
@@ -275,17 +275,17 @@ let dRotateRight tl d tr go =
   | Leaf -> assert false (* absurd case *)
   | Node (g, tl0, d0, tr0) ->
     (match tr0 with
-     | Leaf -> Node (go, (setGap G1 tl0), d0, (Node (G1, Leaf, d, tr)))
-     | Node (g1, g2, d1, g3) ->
-       (match g1 with
+     | Leaf -> Node (go, (setGap G1 tl0), d0, (Node (G1, Leaf, d, Leaf)))
+     | Node (g0, x, x0, x1) ->
+       (match g0 with
         | G1 -> Node (go, (setGap G1 tl0), d0, (Node (G0, tr0, d, (regapAs tr tr0))))
         | G0 ->
           (match gof tl0 with
-           | Some g0 ->
-             (match g0 with
-              | G1 -> Node (go, (Node (G1, (setGap G0 tl0), d0, g2)), d1, (Node (G1, g3, d, (setGap G0 tr))))
+           | Some g1 ->
+             (match g1 with
+              | G1 -> Node (go, (Node (G1, (setGap G0 tl0), d0, x)), x0, (Node (G1, x1, d, (setGap G0 tr))))
               | G0 -> Node (go, (setGap G1 tl0), d0, (Node (G0, tr0, d, (setGap G1 tr)))))
-           | None -> Node (go, (Node (G1, tl0, d0, g2)), d1, (Node (G1, g3, d, tr))))))
+           | None -> Node (go, (Node (G1, Leaf, d0, Leaf)), x0, (Node (G1, Leaf, d, Leaf))))))
 
 (** val dFitRight : gap -> gaptree -> a -> gaptree -> gaptree -> ( * ) **)
 
@@ -305,7 +305,7 @@ let dFitRight g tl d tr t' =
               | LowerFailed -> (dRotateRight tl d t' g),DSameH)
            | G0 -> (Node (g, tl, d, t')),DSameH)
         | None -> assert false (* absurd case *)))
-  | None -> (Node (G1, tl, d, t')),Lower
+  | None -> (Node (G1, Leaf, d, Leaf)),Lower
 
 type delmaxResult =
 | NoMax
@@ -341,29 +341,29 @@ type twoGaps =
 (** val gof2 : gaptree -> gaptree -> twoGaps **)
 
 let gof2 t1 t2 =
-  match gof t1 with
+  match gof t2 with
   | Some g ->
-    (match gof t2 with
-     | Some g0 ->
-       (match g0 with
-        | G1 ->
-          (match g with
+    (match g with
+     | G1 ->
+       (match gof t1 with
+        | Some g0 ->
+          (match g0 with
            | G1 -> G1G1
            | G0 -> G0G1)
-        | G0 ->
-          (match g with
+        | None -> assert false (* absurd case *))
+     | G0 ->
+       (match gof t1 with
+        | Some g0 ->
+          (match g0 with
            | G1 -> G1G0
-           | G0 -> G0G0))
-     | None ->
-       (match g with
-        | G1 -> assert false (* absurd case *)
-        | G0 -> G0None))
+           | G0 -> G0G0)
+        | None -> NoneG0))
   | None ->
-    (match gof t2 with
+    (match gof t1 with
      | Some g ->
        (match g with
         | G1 -> assert false (* absurd case *)
-        | G0 -> NoneG0)
+        | G0 -> G0None)
      | None -> NoneNone)
 
 (** val delMinOrMax : gap -> gaptree -> a -> gaptree -> ( * ) **)

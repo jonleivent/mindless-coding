@@ -1,6 +1,7 @@
 1. Finish providing explicit hypothesis (variable) names in gaptree.v,
 because it might not be possible to automate the proofs to the point
 where very few variables are used by name.
+  - I think I finished this, but it is hard to be sure.
 
 2. Try some more proof automation in gaptree.v.  At least try to speed
 up the "assert .. by xinv .." cases by converting them to lemmas.
