@@ -1,0 +1,28 @@
+1. Finish providing explicit hypothesis (variable) names in gaptree.v,
+because it might not be possible to automate the proofs to the point
+where very few variables are used by name.
+
+2. Try some more proof automation in gaptree.v.  At least try to speed
+up the "assert .. by xinv .." cases by converting them to lemmas.
+
+3. See if redblack.v can be re-organized to show that rebalancing is
+only done O(1) times per insert/delete, as was done in gaptree.v.
+This probably won't be nearly as easy as it was in gaptree.v.
+
+4. Develop an OCaml test suite for the extracted code.  Include
+performance benchmarks.
+
+5. Try "mindless coding" on something that's not a tree.
+
+6. Can the proofs in redblack.v and/or avl.v be automated to the point
+where they're all just one tactic?  Some experience with eauto and
+typeclasses eauto suggests that they don't behave well when some hints
+are equivalent to the identity function under some parameterizations.
+However, if excessive use of these semi-identity functions can be
+controlled, then it might be possible to use the Hint Extern costs to
+control which inversions and case analyses are done in which order.
+But, this switches the programmer's burden from proving (which is
+already very easy in these cases) to hint writing - so it might not be
+such a good idea.
+
+7. What if anything should be done with gap trees?  A paper?
