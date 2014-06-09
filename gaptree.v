@@ -283,10 +283,9 @@ Section insertion.
              (gg: gapee grl grr)(go : Gap)(s : Esorted (fl++^d++fr))
   : gapnode #(Some go) (ES (ES h)) (fl++^d++fr).
   Proof.
-    xinv tr.
-    intros tr1 tr2 ok sr.
+    xinv tr. intros tr1 tr2 ok sr.
     unfold gapee in gg.
-    destruct tr1 eqn:E.
+    destruct tr1 as [ |? ? ? ? ? ? ? ? ? ? ? [|] tr2l d1 tr2r ok0 s0] eqn:E.
     - assert (h=#0) by xinv ok. subst h.
       apply leaf1 in tl. simplify_hyps.
       econstructor.
@@ -296,46 +295,45 @@ Section insertion.
       econstructor.
       econstructor.
       all:zauto.
-    - destruct g0.
-      + assert (ho=h) by xinv ok. subst ho.
-        rewrite group3Eapp.
-        econstructor. econstructor.
-        econstructor.
-        refine (setGap tl). shelve. shelve. shelve.
-        refine (setGap tr1). shelve. shelve. shelve.
-        2:eauto. 4:eauto.
-        instantiate (1:=SG0). instantiate(1:=SG0). instantiate (1:=ES h). shelve.
-        exact tr2.
-        instantiate(1:=G0).
-        Unshelve.
-        5:instantiate(1:=G0);compute;reflexivity.
-        3:instantiate(1:=G0).
-        eauto. 2:eauto.
-        destruct g. destruct o. trivial.
-        apply leaf2 in tl. simplify_hyps; xinv ok0.
-      + assert(ho=ES h) by xinv ok. subst ho.
-        rewrite ?Eapp_assoc.
-        rewrite group3Eapp.
-        clear E.
-        econstructor.
-        econstructor.
-        econstructor.
-        refine (setGap tl). shelve. shelve. shelve.
-        eassumption.
-        shelve. eauto.
-        econstructor.
-        eassumption.
-        refine (setGap tr2). shelve. shelve. shelve.
-        2:eauto. 3:eauto.
-        instantiate(2:=ES h). instantiate(1:=ngap grr G0).
-        2:instantiate(1:=G0). Unshelve.
-        8:reflexivity. 5:reflexivity.
-        4:instantiate(2:=ES h).
-        4:instantiate(1:=G0).
-        2:instantiate(1:=G0).
-        eauto. 2:eauto.
-        econstructor.
-        destruct g. destruct o; eauto.
+    - assert (ho=h) by xinv ok. subst ho.
+      rewrite group3Eapp.
+      econstructor. econstructor.
+      econstructor.
+      refine (setGap tl). shelve. shelve. shelve.
+      refine (setGap tr1). shelve. shelve. shelve.
+      2:eauto. 4:eauto.
+      instantiate (1:=SG0). instantiate(1:=SG0). instantiate (1:=ES h). shelve.
+      exact tr2.
+      instantiate(1:=G0).
+      Unshelve.
+      5:instantiate(1:=G0);compute;reflexivity.
+      3:instantiate(1:=G0).
+      eauto. 2:eauto.
+      destruct g as [[|]]. trivial.
+      apply leaf2 in tl. simplify_hyps; xinv ok0.
+    - assert(ho=ES h) by xinv ok. subst ho.
+      rewrite ?Eapp_assoc.
+      rewrite group3Eapp.
+      clear E.
+      econstructor.
+      econstructor.
+      econstructor.
+      refine (setGap tl). shelve. shelve. shelve.
+      eassumption.
+      shelve. eauto.
+      econstructor.
+      eassumption.
+      refine (setGap tr2). shelve. shelve. shelve.
+      2:eauto. 3:eauto.
+      instantiate(2:=ES h). instantiate(1:=ngap grr G0).
+      2:instantiate(1:=G0). Unshelve.
+      8:reflexivity. 5:reflexivity.
+      4:instantiate(2:=ES h).
+      4:instantiate(1:=G0).
+      2:instantiate(1:=G0).
+      eauto. 2:eauto.
+      econstructor.
+      destruct g as [[|]]; eauto.
   Qed.
 
   Hint Constructors insertResult ires.
