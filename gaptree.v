@@ -145,6 +145,10 @@ match goal with H:gaptree #None _ _ _ _ |- _ => apply leaf2 in H; simplify_hyps 
 
 (************************************************************************)
 
+Hint Extern 1 (_ \/ _) => (left + right).
+
+Hint Extern 1 (~(_ = _)) => intro; simplify_hyps.
+
 Section gapping.
 
   Definition ngap(g : EG)(n : Gap) :=
@@ -162,12 +166,11 @@ Section gapping.
   Definition regapAs{g h go gl gr gl' gr' f f'}
              (t : gaptree go gl gr h f)(ast : gaptree g gl' gr' h f') : gaptree g gl gr h f.
   Proof.
-    case (Gof ast). intros.
-    destruct x; subst.
+    case (Gof ast). intros [g0|] ->.
     - refine (setGap t). exact g0.
       xinv t. xinv ast.
-      intros. xinv ok.
-    - assert (h=#0) by xinv ast. subst. eauto.
+      intros ? ? ok. xinv ok.
+    - eauto.
   Qed.
 
   Inductive RegapR(g gi gl gr : EG)(h : EN)(f : EL) : Type :=
@@ -178,14 +181,13 @@ Section gapping.
              (t : gaptree gi gl gr h f)(ast : gaptree g gl' gr' (ES h') f')
   : RegapR g gi gl gr h f.
   Proof.
-    case (Gof ast). intros.
-    destruct x; subst.
+    case (Gof ast). intros [g0|] ->.
     - econstructor.
       refine (setGap t). exact g0. 2:reflexivity.
-      destruct gi. destruct o; simpl.
-      + right. split. intro. discriminate_erasable. reflexivity.
+      destruct gi as [[|]]; simpl.
+      + right. split; eauto.
       + tauto.
-    - xinv ast.
+    - eauto.
   Qed.
 
   Inductive gapnode(g : EG)(h : EN)(f : EL) : Type :=
@@ -194,10 +196,6 @@ Section gapping.
 End gapping.
 
 Hint Constructors gapnode.
-
-Hint Extern 1 (_ \/ _) => (left + right).
-
-Hint Extern 1 (~(_ = _)) => intro; simplify_hyps.
 
 Hint Extern 1 (#(Some ?G) = ngap _ ?V) => is_evar V; instantiate (1:=G).
 
@@ -222,8 +220,7 @@ Section insertion.
              (gg: gapee gll glr)(go : Gap)(s : Esorted (fl++^d++fr))
   : gapnode #(Some go) (ES (ES h)) (fl++^d++fr).
   Proof.
-    xinv tl.
-    intros tl1 tl2 ok sl.
+    xinv tl. intros tl1 tl2 ok sl.
     unfold gapee in gg.
     destruct tl2 eqn:E.
     - assert (h=#0) by xinv ok. subst h.
