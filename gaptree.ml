@@ -138,7 +138,7 @@ let iFitLeft x c tl t d tr =
           (match g0 with
            | G1 -> Inserted ((rotateRight t d tr c), ISameH)
            | G0 -> Inserted ((Node (G0, t, d, (setGap G1 tr))), Higher))
-        | None -> Inserted ((rotateRight t d tr c), ISameH)))
+        | None -> Inserted ((rotateRight t d Leaf c), ISameH)))
   | None ->
     (match gof tr with
      | Some g -> Inserted ((Node (c, t, d, tr)), ISameH)
@@ -157,7 +157,7 @@ let iFitRight x c tl d tr t =
           (match g0 with
            | G1 -> Inserted ((rotateLeft tl d t c), ISameH)
            | G0 -> Inserted ((Node (G0, (setGap G1 tl), d, t)), Higher))
-        | None -> Inserted ((rotateLeft tl d t c), ISameH)))
+        | None -> Inserted ((rotateLeft Leaf d t c), ISameH)))
   | None ->
     (match gof tl with
      | Some g -> Inserted ((Node (c, tl, d, t)), ISameH)
