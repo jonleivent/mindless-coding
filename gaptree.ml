@@ -248,7 +248,7 @@ let dFitLeft g tl t' d tr =
            | G1 ->
              let t = tryLowering tr in
              (match t with
-              | Lowered t0 -> (Node (G1, (setGap G1 t'), d, t0)),Lower
+              | Lowered t0 -> (Node (G1, t', d, t0)),Lower
               | LowerFailed -> (dRotateLeft t' d tr g),DSameH)
            | G0 -> (Node (g, t', d, tr)),DSameH)
         | None -> assert false (* absurd case *)))
@@ -301,7 +301,7 @@ let dFitRight g tl d tr t' =
            | G1 ->
              let t = tryLowering tl in
              (match t with
-              | Lowered t0 -> (Node (G1, t0, d, (setGap G1 t'))),Lower
+              | Lowered t0 -> (Node (G1, t0, d, t')),Lower
               | LowerFailed -> (dRotateRight tl d t' g),DSameH)
            | G0 -> (Node (g, tl, d, t')),DSameH)
         | None -> assert false (* absurd case *)))
@@ -371,15 +371,6 @@ let gof2 t1 t2 =
 let delMinOrMax g tl d tr =
   match gof2 tl tr with
   | NoneNone -> Leaf,Lower
-  | G0G0 ->
-    let h = delmin tr in
-    (match h with
-     | NoMin -> assert false (* absurd case *)
-     | MinDeleted (m, dr) ->
-       let t,dc = dr in
-       (match dc with
-        | DSameH -> (Node (g, tl, m, t)),DSameH
-        | Lower -> (Node (g, (setGap G0 tl), m, t)),DSameH))
   | G1G1 ->
     let h = delmin tr in
     (match h with
@@ -390,17 +381,17 @@ let delMinOrMax g tl d tr =
         | DSameH -> (Node (g, tl, m, t)),DSameH
         | Lower -> (Node (G1, (setGap G0 tl), m, t)),Lower))
   | NoneG0 -> (setGap G1 tr),Lower
-  | G1G0 ->
-    let h = delmin tr in
-    (match h with
-     | NoMin -> assert false (* absurd case *)
-     | MinDeleted (m, dr) -> let t,dc = dr in (Node (g, tl, m, t)),DSameH)
   | G0None -> (setGap G1 tl),Lower
   | G0G1 ->
     let h = delmax tl in
     (match h with
      | NoMax -> assert false (* absurd case *)
      | MaxDeleted (m, dr) -> let t,dc = dr in (Node (g, t, m, tr)),DSameH)
+  | _ ->
+    let h = delmin tr in
+    (match h with
+     | NoMin -> assert false (* absurd case *)
+     | MinDeleted (m, dr) -> let t,dc = dr in (Node (g, tl, m, t)),DSameH)
 
 (** val delete : a -> gaptree -> deleteResult **)
 
