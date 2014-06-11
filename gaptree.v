@@ -274,22 +274,11 @@ Section gapping.
     destruct t; subst; simpl; eauto.
   Qed.
 
-  Definition regapAs{g h go gl gr gl' gr' f f'}
-             (t : gaptree go gl gr h f)(ast : gaptree g gl' gr' h f') : gaptree g gl gr h f.
-  Proof.
-    case (Gof ast). intros [g0|] ->.
-    - refine (setGap t). exact g0.
-      destruct go as [[|]]; simpl.
-      + reflexivity.
-      + gh.
-    - eauto.
-  Qed.
-
   Inductive RegapR(g gi gl gr : EG)(h : EN)(f : EL) : Type :=
   | regapR{go} : gaptree go gl gr h f -> gi=#None/\go=#None\/gi<>#None/\go=g
                  -> RegapR g gi gl gr h f.
 
-  Definition regapAs'{g h h' gi gl gr gl' gr' f f'}
+  Definition regapAs{g h h' gi gl gr gl' gr' f f'}
              (t : gaptree gi gl gr h f)(ast : gaptree g gl' gr' (ES h') f')
   : RegapR g gi gl gr h f.
   Proof.
@@ -300,6 +289,12 @@ Section gapping.
       + right. split; eauto.
       + tauto.
     - eauto.
+  Qed.
+  
+  Definition Gofis{g gl gr h f}
+    (t : gaptree g gl gr h f)(isg : Gap) : {g = #(Some isg)} + {g <> #(Some isg)}.
+  Proof.
+    destruct isg; case (Gof t); intros [[|]|] ->. all:eauto.
   Qed.
 
   Inductive gapnode(g : EG)(h : EN)(f : EL) : Type :=
@@ -400,21 +395,16 @@ Section insertion.
              (s : Esorted ((fl0 ++ fr0) ++ ^ d ++ fr))
   : insertResult x # (Some c) ho (fl0 ++ fr0 ++ ^ d ++ fr).
   Proof.
-    case (Gof tl). intros [[|]|] ->; gh.
-    - ec. 2:eauto. zauto.
-    - case (Gof tr). intros [[|]|] ->; gh.
-      + eelim (rotateRight t d tr H1 c). intros. zauto. se.
-      + ec.
-        rewrite group3Eapp.
-        ec. ea. sg. ea. re.
+    case (Gofis tl G0); intro; subst; gh.
+    - case (Gofis tr G0); intro; subst.
+      + gh. ec. rewrite group3Eapp. ec. ea. sg. ea. re.
         instantiate (1:=G1). simpl. instantiate (1:=ES(ES hr)). es hr. ec.
         se. ec. re. simpl. eauto.
-      + eelim (rotateRight t d Leaf H1 c). intros. zauto. se.
-    - case (Gof tr). intros [[|]|] ->.
-      + zauto.
-      + gh. zauto.
-      + gh. ec.
-        rewrite group3Eapp. ec. ea. ec. ec. se. ec. re. eauto.
+      + assert (hl=ES hr) by xinv ok. subst.
+        eelim (rotateRight t d tr H1 c). intros. zauto. se.
+    - destruct tr eqn:E; clear E.
+      + gh. ec. rewrite group3Eapp. ec. ea. ec. xinv ok. ec. se. ec. re. eauto.
+      + ec. rewrite group3Eapp. ec. ea. ea. instantiate (1:=ho). xinv ok. se. ec. re.
   Qed.
 
   Definition iFitRight{gl gll glr hl fl gr grl grr hr fl0 fr0 gl0 gr0 ho x c}
@@ -425,21 +415,17 @@ Section insertion.
              (s : Esorted (fl ++ ^ d ++ fl0 ++ fr0))
   : insertResult x # (Some c) ho ((fl ++ ^ d ++ fl0) ++ fr0).
   Proof.
-    case (Gof tr). intros [[|]|] ->; gh.
-    - ec. 2:eauto. zauto.
-    - case (Gof tl). intros [[|]|] ->; gh.
-      + eelim (rotateLeft tl d t H1 c). intros. zauto. se.
-      + ec.
-        rewrite ?Eapp_assoc.
-        ec. sg. ea. re. ea.
-        instantiate (1:=G1). instantiate (1:=ES (ES hr)). es hr. ec.
+    case (Gofis tr G0); intro; subst; gh.
+    - case (Gofis tl G0); intro; subst.
+      + gh. ec. rewrite ?Eapp_assoc. ec. sg. ea. re. ea.
+        instantiate (1:=G1). simpl. instantiate (1:=ES (ES hr)). es hr. ec.
         se. ec. re. simpl. eauto.
-      + eelim (rotateLeft Leaf d t H1 c). intros. zauto. se.
-    - case (Gof tl). intros [[|]|] ->.
-      + zauto.
-      + gh. zauto.
-      + gh. ec.
-        rewrite ?Eapp_assoc. ec. ec. ea. ec. se. ec. re. eauto.
+      + assert (hr=ES hl) by xinv ok. subst. 
+        eelim (rotateLeft tl d t H1 c). intros. zauto. se.
+    - destruct tl eqn:E; clear E.
+      + gh. ec. rewrite ?Eapp_assoc. ec. ec. ea. xinv ok. ec. se. ec. re. eauto.
+      + ec. rewrite ?Eapp_assoc. rewrite group3Eapp. ec. ea. ea. instantiate (1:=ho). xinv ok.
+        se. ec. re.
   Qed.
 
   Definition insert(x : A){g gl gr h f}(t : gaptree g gl gr h f)
@@ -503,13 +489,11 @@ Section deletion.
   : tryLowerResult gl gr (ES (ES h)) f.
   Proof.
     xinv t. intros tl tr ok s.
-    case (Gof tl). intros [[|]|] ->.
-    - case (Gof tr). intros [[|]|] ->.
+    case (Gofis tl G1); intro; subst.
+    - case (Gofis tr G1); intro; subst.
       + ec. ec. sg. ea. re. sg. ea. re. xinv ok. se.
-      + eauto.
-      + exfalso. xinv ok.
-    - eauto.
-    - gh. ec. eauto.
+      + ec. unfold avlish. right. xinv ok.
+    - ec. unfold avlish. xinv ok.
   Qed.
 
   Definition dRotateLeft{gl gll glr grl grr h fl fr}
@@ -519,30 +503,21 @@ Section deletion.
   Proof.
     xinv tr. intros tl0 tr0 ok sr.
     unfold avlish in H.
-    destruct tl0 as [ |? ? ? ? ? ? ? ? ? ? ? [|] tl0l d1 tl0r ok0 s0] eqn:E; clear E.
+    destruct tl0 as [ |? ? ? ? ? ? ? ? ? ? ? g0 tl0l d1 tl0r ok0 s0] eqn:E; clear E.
     - assert (grr=SG0) by (sh; re). subst grr. gh.
       rewrite group3Eapp.
       ec. ec. ec. ec. ec. ec. se. sg. ea. re. ec. se.
-    - assert (grr=SG0) by (sh; re). subst grr. gh.
-      rewrite group3Eapp.
-      ec. ec. ec.
-      exact (regapAs tl tl0).
-      ea.
-      instantiate (1:=ES (ES ho)). es ho. ec. se. sg. ea. re. ec. se.
-    - case (Gof tr0). intros [[|]|] ->; gh.
-      + rewrite ?Eapp_assoc.
-        rewrite group3Eapp.
-        ec. ec. ec. sg. ea. re. ea.
-        instantiate (1:=G0). instantiate (1:=ES hr). destruct gl as [[|]]; simpl. es hr. xinv ok0.
-        gh. se. ec. ea. sg. ea. re.
-        instantiate (1:=G0). instantiate(1:=ES hr). es hr. xinv ok0. se. ec. se.
+    - case (Gofis tr0 G0); intro; subst; gh.
       + rewrite group3Eapp.
         ec. ec. ec. sg. ea. re. ea.
-        instantiate (1:=G1). instantiate (1:=ES(ES h)). destruct gl as [[|]]; simpl. es h. ec.
-        gh. ec. ec. se. sg. ea. re. ec. se.
+        instantiate (1:=G1). instantiate (1:=ES(ES h)). destruct gl as [[|]]; simpl. es h.
+        xinv ok. gh. ec. xinv ok. se. sg. ea. re. ec. se.
       + rewrite ?Eapp_assoc.
         rewrite group3Eapp.
-        eauto.
+        ec. ec. ec. sg. ea. re. ea.
+        instantiate (1:=G0). instantiate (1:=ES hr). destruct gl as [[|]]; simpl. es h. xinv ok.
+        xinv ok0. gh. xinv ok. se. ec. ea. sg. ea. re.
+        instantiate (1:=G0). instantiate(1:=ES hr). xinv ok. xinv ok0. gh. ec. se. xinv ok. se.
   Qed.
 
   Inductive delminResult 
@@ -559,15 +534,9 @@ Section deletion.
              (ok : OKNode ho gl (ES ho0) gr hr)(s : Esorted (f++^d++fr))(e : go<>SG0)
   : delout # (Some g) ho (f ++ ^ d ++ fr).
   Proof.
-    case (Gof tr). intros [[|]|] ->; gh.
-    - elim (regapAs' t' tl). intros go0 t H.
-      ec. ec. ea. sg. ea. re.
-      instantiate (2:=ES hr). instantiate(1:=G0). sh. es hr. gh. simpl. xinv ok.
-      es hr. simpl. xinv ok. es ho0. ec. se. ec. 
-      instantiate (1:=G1). eauto.
-    - case (Gof tl). intros [[|]|] ->.
-      + gh. 
-        pose (tryLowering tr) as T. xinv T.
+    case (Gofis tr G0); intro; subst; gh.
+    - case (Gofis tl G1); intro; subst.
+      + gh. pose (tryLowering tr) as T. xinv T.
         * intro t.
           ec. ec. ea. ea.
           instantiate (1:=ES (ES ho0)).
@@ -575,12 +544,12 @@ Section deletion.
           instantiate (1:=G1). eauto.
         * intro W.
           eelim (dRotateLeft t' d tr g W). intros. eauto.
-      + gh. ec. ec. ea. ea.
-        instantiate (1:=ES (ES ho0)). destruct go as [[[|]|]]; simpl. es ho0. ec. sh.
-        gh. ec. se. ec.
-      + exfalso. xinv ok.
-    - gh. ec. ec. ec. ec. ec. se. ec.
-      instantiate(1:=G1). eauto.
+      + ec. ec. ea. ea. instantiate (1:=ES hr). xinv ok. destruct go as [[[|]|]]. es ho0. ec.
+        sh. gh. ec. se. ec.
+    - elim (regapAs t' tl). intros go0 t ?.
+      ec. ec. exact t. sg. ea. re.
+      instantiate (1:=G0). instantiate (1:=ES hr). sh. gh. xinv ok. xinv ok. simpl. es ho0. ec.
+      gh. se. instantiate (1:=G1). assert (ho=ES(ES hr)) by xinv ok. subst. ec. eauto.
   Grab Existential Variables.
   se.
   Qed.
@@ -609,30 +578,22 @@ Section deletion.
   Proof.
     xinv tl. intros tl0 tr0 ok sl.
     unfold avlish in H.
-    destruct tr0 as [ |? ? ? ? ? ? ? ? ? ? ? [|] tr0l d1 tr0r ok0 s0] eqn:E; clear E.
+    destruct tr0 as [ |? ? ? ? ? ? ? ? ? ? ? g0 tr0l d1 tr0r ok0 s0] eqn:E; clear E.
     - assert (gll=SG0) by (sh; re). subst gll. gh.
       rewrite ?Eapp_assoc.
       ec. ec. sg. ea. re. ec. ec. ec. ec. se. ec. se.
-    - assert (gll=SG0) by (sh; re). subst gll. gh.
-      rewrite 2 Eapp_assoc.
-      ec. ec. sg. ea. re. ec. ea.
-      exact (regapAs tr tr0).
-      instantiate (1:=ES (ES ho)). es ho. ec. se. ec. se.
-    - case (Gof tl0). intros [[|]|] ->; gh.
-      + rewrite ?Eapp_assoc.
-        rewrite group3Eapp.
-        ec. ec. ec. sg. ea. re. ea.
-        instantiate (1:=G0). instantiate (1:=ES hl). es hl. simpl. xinv ok0.
-        se. ec. ea. sg. ea. re.
-        instantiate (1:=G0). instantiate(1:=ES hl). destruct gr as [[|]]; simpl. es hl. xinv ok0.
-        gh. se. ec. se.
+    - case (Gofis tl0 G0); intro; subst; gh.
       + rewrite 2 Eapp_assoc.
         ec. ec. sg. ea. re. ec. ea. sg. ea. re.
         instantiate (1:=G1). instantiate(1:=ES(ES h)). destruct gr as [[|]]; simpl.
-        es h. ec. gh. ec. ec. se. ec. se.
+        es h. xinv ok. gh. xinv ok. ec. se. ec. se.
       + rewrite ?Eapp_assoc.
         rewrite group3Eapp.
-        eauto.
+        ec. ec. ec. sg. ea. re. ea.
+        instantiate (1:=G0). instantiate (1:=ES hl). xinv ok; simpl. xinv ok0. gh. ec.
+        se. ec. ea. sg. ea. re.
+        instantiate (1:=G0). instantiate(1:=ES h). destruct gr as [[|]]; simpl. es h. xinv ok.
+        xinv ok0. gh. ec. se. xinv ok. se.
   Qed.
   
   Definition dFitRight{gl gll glr hl fl gr grl grr ho0 fr go gl0 gr0 f ho}
@@ -641,16 +602,9 @@ Section deletion.
              (s : Esorted (fl++^d++f))(e : go <> SG0)
   : delout # (Some g) ho (fl ++ ^ d ++ f).
   Proof.
-    case (Gof tl). intros [[|]|] ->; gh.
-    - elim (regapAs' t' tr). intros go0 t H.
-      ec. ec. sg. ea. re. ea.
-      instantiate (1:=G0). instantiate (1:=ES hl). sh; simpl.
-      gh. es hl. xinv ok. destruct gr as [[|]]. xinv ok. es ho0. ec.
-      gh. se. ec.
-      instantiate(1:=G1). eauto.
-    - case (Gof tr). intros [[|]|] ->.
-      + gh. 
-        pose (tryLowering tl) as T. xinv T.
+    case (Gofis tl G0); intro; subst; gh.
+    - case (Gofis tr G1); intro; subst.
+      + gh. pose (tryLowering tl) as T. xinv T.
         * intro t.
           ec. ec. ea. ea.
           instantiate (1:=ES(ES ho0)).
@@ -658,10 +612,13 @@ Section deletion.
           instantiate(1:=G1). eauto.
         * intro W.
           eelim (dRotateRight tl d t' g W). intros. eauto.
-      + gh. ec. ec. ea. ea.
-        instantiate (1:=ES(ES ho0)). destruct go as [[[|]|]]. es ho0. ec. sh. gh. ec. se. ec.
-      + exfalso. xinv ok.
-    - gh. ec. ec. ec. ec. ec. se. ec.
+      + ec. ec. ea. ea.
+        instantiate (1:=ES hl). destruct go as [[[|]|]]. xinv ok. es ho0. ec. sh. gh. xinv ok. se. ec.
+    - elim (regapAs t' tr). intros go0 t ?.
+      ec. ec. sg. ea. re. ea.
+      instantiate (1:=G0). instantiate (1:=ES hl). sh; simpl.
+      gh. xinv ok. destruct gr as [[|]]. xinv ok. es ho0. ec.
+      gh. xinv ok. se. assert (ho=ES(ES hl)) by xinv ok. subst. ec.
       instantiate(1:=G1). eauto.
   Grab Existential Variables.
   se.
@@ -721,6 +678,7 @@ Section deletion.
     assert (g2'=G0) by xinv ok. subst. eauto.
     assert (g1'=G0) by xinv ok. subst. eauto.
     eauto.
+    all:exfalso; xinv ok.
   Defined.
 
   (* Decide whether to use delmin or delmax to replace the deleted
@@ -789,5 +747,6 @@ Section deletion.
 End deletion.
 
 Extract Inductive delout => "( * )" [ "(,)" ].
-Set Printing Width 150.
+Extract Inductive sumbool => "bool" [ "true" "false" ].
+Set Printing Width 110.
 Extraction "gaptree.ml" find insert delmin delete.

@@ -18,13 +18,10 @@ type 'a sig0 =
   'a
   (* singleton inductive, whose constructor was exist *)
 
-type sumbool =
-| Left
-| Right
+type 'a eqDec = 'a -> 'a -> bool
 
-type 'a eqDec = 'a -> 'a -> sumbool
-
-type 'a ordered = { eq_dec : 'a eqDec; compare : ('a -> 'a -> comparison); compare_spec : ('a -> 'a -> compareSpecT) }
+type 'a ordered = { eq_dec : 'a eqDec; compare : ('a -> 'a -> comparison);
+                    compare_spec : ('a -> 'a -> compareSpecT) }
 
 val compare_spec : 'a1 ordered -> 'a1 -> 'a1 -> compareSpecT
 
@@ -50,13 +47,13 @@ val gof : gaptree -> gap option
 
 val setGap : gap -> gaptree -> gaptree
 
-val regapAs : gaptree -> gaptree -> gaptree
-
 type regapR =
   gaptree
   (* singleton inductive, whose constructor was regapR *)
 
-val regapAs' : gaptree -> gaptree -> regapR
+val regapAs : gaptree -> gaptree -> regapR
+
+val gofis : gaptree -> gap -> bool
 
 type gapnode =
   gaptree

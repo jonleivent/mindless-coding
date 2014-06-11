@@ -16,13 +16,10 @@ type 'a sig0 =
   'a
   (* singleton inductive, whose constructor was exist *)
 
-type sumbool =
-| Left
-| Right
+type 'a eqDec = 'a -> 'a -> bool
 
-type 'a eqDec = 'a -> 'a -> sumbool
-
-type 'a ordered = { eq_dec : 'a eqDec; compare : ('a -> 'a -> comparison); compare_spec : ('a -> 'a -> compareSpecT) }
+type 'a ordered = { eq_dec : 'a eqDec; compare : ('a -> 'a -> comparison);
+                    compare_spec : ('a -> 'a -> compareSpecT) }
 
 (** val compare_spec : 'a1 ordered -> 'a1 -> 'a1 -> compareSpecT **)
 
@@ -69,23 +66,34 @@ let setGap ng = function
 | Leaf -> Leaf
 | Node (g, t1, d, t2) -> Node (ng, t1, d, t2)
 
-(** val regapAs : gaptree -> gaptree -> gaptree **)
-
-let regapAs t ast =
-  match gof ast with
-  | Some g0 -> setGap g0 t
-  | None -> Leaf
-
 type regapR =
   gaptree
   (* singleton inductive, whose constructor was regapR *)
 
-(** val regapAs' : gaptree -> gaptree -> regapR **)
+(** val regapAs : gaptree -> gaptree -> regapR **)
 
-let regapAs' t ast =
+let regapAs t ast =
   match gof ast with
   | Some g0 -> setGap g0 t
   | None -> assert false (* absurd case *)
+
+(** val gofis : gaptree -> gap -> bool **)
+
+let gofis t = function
+| G1 ->
+  (match gof t with
+   | Some g0 ->
+     (match g0 with
+      | G1 -> true
+      | G0 -> false)
+   | None -> false)
+| G0 ->
+  (match gof t with
+   | Some g0 ->
+     (match g0 with
+      | G1 -> false
+      | G0 -> true)
+   | None -> false)
 
 type gapnode =
   gaptree
@@ -128,40 +136,24 @@ let rotateLeft tl d tr go =
 (** val iFitLeft : a -> gap -> gaptree -> gaptree -> a -> gaptree -> insertResult **)
 
 let iFitLeft x c tl t d tr =
-  match gof tl with
-  | Some g ->
-    (match g with
-     | G1 -> Inserted ((Node (c, t, d, tr)), ISameH)
-     | G0 ->
-       (match gof tr with
-        | Some g0 ->
-          (match g0 with
-           | G1 -> Inserted ((rotateRight t d tr c), ISameH)
-           | G0 -> Inserted ((Node (G0, t, d, (setGap G1 tr))), Higher))
-        | None -> Inserted ((rotateRight t d Leaf c), ISameH)))
-  | None ->
-    (match gof tr with
-     | Some g -> Inserted ((Node (c, t, d, tr)), ISameH)
-     | None -> Inserted ((Node (G0, t, d, Leaf)), Higher))
+  if gofis tl G0
+  then if gofis tr G0
+       then Inserted ((Node (G0, t, d, (setGap G1 tr))), Higher)
+       else Inserted ((rotateRight t d tr c), ISameH)
+  else (match tr with
+        | Leaf -> Inserted ((Node (G0, t, d, Leaf)), Higher)
+        | Node (g1, g2, d0, g3) -> Inserted ((Node (c, t, d, tr)), ISameH))
 
 (** val iFitRight : a -> gap -> gaptree -> a -> gaptree -> gaptree -> insertResult **)
 
 let iFitRight x c tl d tr t =
-  match gof tr with
-  | Some g ->
-    (match g with
-     | G1 -> Inserted ((Node (c, tl, d, t)), ISameH)
-     | G0 ->
-       (match gof tl with
-        | Some g0 ->
-          (match g0 with
-           | G1 -> Inserted ((rotateLeft tl d t c), ISameH)
-           | G0 -> Inserted ((Node (G0, (setGap G1 tl), d, t)), Higher))
-        | None -> Inserted ((rotateLeft Leaf d t c), ISameH)))
-  | None ->
-    (match gof tl with
-     | Some g -> Inserted ((Node (c, tl, d, t)), ISameH)
-     | None -> Inserted ((Node (G0, Leaf, d, t)), Higher))
+  if gofis tr G0
+  then if gofis tl G0
+       then Inserted ((Node (G0, (setGap G1 tl), d, t)), Higher)
+       else Inserted ((rotateLeft tl d t c), ISameH)
+  else (match tl with
+        | Leaf -> Inserted ((Node (G0, Leaf, d, t)), Higher)
+        | Node (g1, g2, d0, g3) -> Inserted ((Node (c, tl, d, t)), ISameH))
 
 (** val insert : a -> gaptree -> insertResult **)
 
@@ -198,18 +190,9 @@ type tryLowerResult =
 let tryLowering = function
 | Leaf -> assert false (* absurd case *)
 | Node (g, tl, d, tr) ->
-  (match gof tl with
-   | Some g0 ->
-     (match g0 with
-      | G1 ->
-        (match gof tr with
-         | Some g1 ->
-           (match g1 with
-            | G1 -> Lowered (Node (G0, (setGap G0 tl), d, (setGap G0 tr)))
-            | G0 -> LowerFailed)
-         | None -> assert false (* absurd case *))
-      | G0 -> LowerFailed)
-   | None -> LowerFailed)
+  if gofis tl G1
+  then if gofis tr G1 then Lowered (Node (G0, (setGap G0 tl), d, (setGap G0 tr))) else LowerFailed
+  else LowerFailed
 
 (** val dRotateLeft : gaptree -> a -> gaptree -> gap -> gapnode **)
 
@@ -219,16 +202,10 @@ let dRotateLeft tl d tr go =
   | Node (g, tl0, d0, tr0) ->
     (match tl0 with
      | Leaf -> Node (go, (Node (G1, Leaf, d, Leaf)), d0, (setGap G1 tr0))
-     | Node (g0, x, x0, x1) ->
-       (match g0 with
-        | G1 -> Node (go, (Node (G0, (regapAs tl tl0), d, tl0)), d0, (setGap G1 tr0))
-        | G0 ->
-          (match gof tr0 with
-           | Some g1 ->
-             (match g1 with
-              | G1 -> Node (go, (Node (G1, (setGap G0 tl), d, x)), x0, (Node (G1, x1, d0, (setGap G0 tr0))))
-              | G0 -> Node (go, (Node (G0, (setGap G1 tl), d, tl0)), d0, (setGap G1 tr0)))
-           | None -> Node (go, (Node (G1, Leaf, d, Leaf)), x0, (Node (G1, Leaf, d0, Leaf))))))
+     | Node (g0, tl0l, d1, tl0r) ->
+       if gofis tr0 G0
+       then Node (go, (Node (G0, (setGap G1 tl), d, tl0)), d0, (setGap G1 tr0))
+       else Node (go, (Node (G1, (setGap G0 tl), d, tl0l)), d1, (Node (G1, tl0r, d0, (setGap G0 tr0)))))
 
 type delminResult =
 | NoMin
@@ -237,22 +214,14 @@ type delminResult =
 (** val dFitLeft : gap -> gaptree -> gaptree -> a -> gaptree -> ( * ) **)
 
 let dFitLeft g tl t' d tr =
-  match gof tr with
-  | Some g0 ->
-    (match g0 with
-     | G1 -> (Node (G1, (regapAs' t' tl), d, (setGap G0 tr))),Lower
-     | G0 ->
-       (match gof tl with
-        | Some g1 ->
-          (match g1 with
-           | G1 ->
-             let t = tryLowering tr in
-             (match t with
-              | Lowered t0 -> (Node (G1, t', d, t0)),Lower
-              | LowerFailed -> (dRotateLeft t' d tr g),DSameH)
-           | G0 -> (Node (g, t', d, tr)),DSameH)
-        | None -> assert false (* absurd case *)))
-  | None -> (Node (G1, Leaf, d, Leaf)),Lower
+  if gofis tr G0
+  then if gofis tl G1
+       then let t = tryLowering tr in
+            (match t with
+             | Lowered t0 -> (Node (G1, t', d, t0)),Lower
+             | LowerFailed -> (dRotateLeft t' d tr g),DSameH)
+       else (Node (g, t', d, tr)),DSameH
+  else (Node (G1, (regapAs t' tl), d, (setGap G0 tr))),Lower
 
 (** val delmin : gaptree -> delminResult **)
 
@@ -276,36 +245,22 @@ let dRotateRight tl d tr go =
   | Node (g, tl0, d0, tr0) ->
     (match tr0 with
      | Leaf -> Node (go, (setGap G1 tl0), d0, (Node (G1, Leaf, d, Leaf)))
-     | Node (g0, x, x0, x1) ->
-       (match g0 with
-        | G1 -> Node (go, (setGap G1 tl0), d0, (Node (G0, tr0, d, (regapAs tr tr0))))
-        | G0 ->
-          (match gof tl0 with
-           | Some g1 ->
-             (match g1 with
-              | G1 -> Node (go, (Node (G1, (setGap G0 tl0), d0, x)), x0, (Node (G1, x1, d, (setGap G0 tr))))
-              | G0 -> Node (go, (setGap G1 tl0), d0, (Node (G0, tr0, d, (setGap G1 tr)))))
-           | None -> Node (go, (Node (G1, Leaf, d0, Leaf)), x0, (Node (G1, Leaf, d, Leaf))))))
+     | Node (g0, tr0l, d1, tr0r) ->
+       if gofis tl0 G0
+       then Node (go, (setGap G1 tl0), d0, (Node (G0, tr0, d, (setGap G1 tr))))
+       else Node (go, (Node (G1, (setGap G0 tl0), d0, tr0l)), d1, (Node (G1, tr0r, d, (setGap G0 tr)))))
 
 (** val dFitRight : gap -> gaptree -> a -> gaptree -> gaptree -> ( * ) **)
 
 let dFitRight g tl d tr t' =
-  match gof tl with
-  | Some g0 ->
-    (match g0 with
-     | G1 -> (Node (G1, (setGap G0 tl), d, (regapAs' t' tr))),Lower
-     | G0 ->
-       (match gof tr with
-        | Some g1 ->
-          (match g1 with
-           | G1 ->
-             let t = tryLowering tl in
-             (match t with
-              | Lowered t0 -> (Node (G1, t0, d, t')),Lower
-              | LowerFailed -> (dRotateRight tl d t' g),DSameH)
-           | G0 -> (Node (g, tl, d, t')),DSameH)
-        | None -> assert false (* absurd case *)))
-  | None -> (Node (G1, Leaf, d, Leaf)),Lower
+  if gofis tl G0
+  then if gofis tr G1
+       then let t = tryLowering tl in
+            (match t with
+             | Lowered t0 -> (Node (G1, t0, d, t')),Lower
+             | LowerFailed -> (dRotateRight tl d t' g),DSameH)
+       else (Node (g, tl, d, t')),DSameH
+  else (Node (G1, (setGap G0 tl), d, (regapAs t' tr))),Lower
 
 type delmaxResult =
 | NoMax
