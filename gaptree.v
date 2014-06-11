@@ -716,9 +716,11 @@ Section deletion.
              (ok : OKNode ho g1 h1 g2 h2)
   : TwoGaps g1 g2.
   Proof.
-    case (Gof t1). case (Gof t2). intros [[|]|] -> [[|]|] ->.
-    all:eauto.
-    all:exfalso; xinv ok.
+    case (Gof t1). case (Gof t2). intros [g2'|] -> [g1'|] ->.
+    destruct g1', g2'; eauto.
+    assert (g2'=G0) by xinv ok. subst. eauto.
+    assert (g1'=G0) by xinv ok. subst. eauto.
+    eauto.
   Defined.
 
   (* Decide whether to use delmin or delmax to replace the deleted

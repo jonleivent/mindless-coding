@@ -342,28 +342,22 @@ type twoGaps =
 
 let gof2 t1 t2 =
   match gof t2 with
-  | Some g ->
-    (match g with
-     | G1 ->
-       (match gof t1 with
-        | Some g0 ->
-          (match g0 with
+  | Some g2' ->
+    (match gof t1 with
+     | Some g1' ->
+       (match g1' with
+        | G1 ->
+          (match g2' with
            | G1 -> G1G1
-           | G0 -> G0G1)
-        | None -> assert false (* absurd case *))
-     | G0 ->
-       (match gof t1 with
-        | Some g0 ->
-          (match g0 with
-           | G1 -> G1G0
-           | G0 -> G0G0)
-        | None -> NoneG0))
+           | G0 -> G1G0)
+        | G0 ->
+          (match g2' with
+           | G1 -> G0G1
+           | G0 -> G0G0))
+     | None -> NoneG0)
   | None ->
     (match gof t1 with
-     | Some g ->
-       (match g with
-        | G1 -> assert false (* absurd case *)
-        | G0 -> G0None)
+     | Some g1' -> G0None
      | None -> NoneNone)
 
 (** val delMinOrMax : gap -> gaptree -> a -> gaptree -> ( * ) **)
