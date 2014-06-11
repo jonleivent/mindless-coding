@@ -133,9 +133,9 @@ let rotateLeft tl d tr go =
         | G1 -> Node (go, (Node (G0, (setGap G0 tl), d, (setGap G0 tl0))), d0, tr0)
         | G0 -> Node (go, (Node (G0, (setGap G0 tl), d, x)), x0, (Node (G0, x1, d0, (setGap G0 tr0))))))
 
-(** val iFitLeft : a -> gap -> gaptree -> gaptree -> a -> gaptree -> insertResult **)
+(** val iFitLeft : gap -> gaptree -> gaptree -> a -> gaptree -> insertResult **)
 
-let iFitLeft x c tl t d tr =
+let iFitLeft c tl t d tr =
   if gofis tl G0
   then if gofis tr G0
        then Inserted ((Node (G0, t, d, (setGap G1 tr))), Higher)
@@ -144,9 +144,9 @@ let iFitLeft x c tl t d tr =
         | Leaf -> Inserted ((Node (G0, t, d, Leaf)), Higher)
         | Node (g1, g2, d0, g3) -> Inserted ((Node (c, t, d, tr)), ISameH))
 
-(** val iFitRight : a -> gap -> gaptree -> a -> gaptree -> gaptree -> insertResult **)
+(** val iFitRight : gap -> gaptree -> a -> gaptree -> gaptree -> insertResult **)
 
-let iFitRight x c tl d tr t =
+let iFitRight c tl d tr t =
   if gofis tr G0
   then if gofis tl G0
        then Inserted ((Node (G0, (setGap G1 tl), d, t)), Higher)
@@ -168,14 +168,14 @@ let rec insert x = function
       | Inserted (t0, i) ->
         (match i with
          | ISameH -> Inserted ((Node (g, t0, d, tr)), ISameH)
-         | Higher -> iFitLeft x g tl t0 d tr))
+         | Higher -> iFitLeft g tl t0 d tr))
    | CompGtT ->
      (match insert x tr with
       | FoundByInsert -> FoundByInsert
       | Inserted (t0, i) ->
         (match i with
          | ISameH -> Inserted ((Node (g, tl, d, t0)), ISameH)
-         | Higher -> iFitRight x g tl d tr t0)))
+         | Higher -> iFitRight g tl d tr t0)))
 
 type dres =
 | DSameH

@@ -748,5 +748,7 @@ End deletion.
 
 Extract Inductive delout => "( * )" [ "(,)" ].
 Extract Inductive sumbool => "bool" [ "true" "false" ].
+Extraction Implicit iFitLeft [x].
+Extraction Implicit iFitRight [x].
 Set Printing Width 110.
 Extraction "gaptree.ml" find insert delmin delete.

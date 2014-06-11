@@ -71,9 +71,9 @@ val rotateRight : gaptree -> a -> gaptree -> gap -> gapnode
 
 val rotateLeft : gaptree -> a -> gaptree -> gap -> gapnode
 
-val iFitLeft : a -> gap -> gaptree -> gaptree -> a -> gaptree -> insertResult
+val iFitLeft : gap -> gaptree -> gaptree -> a -> gaptree -> insertResult
 
-val iFitRight : a -> gap -> gaptree -> a -> gaptree -> gaptree -> insertResult
+val iFitRight : gap -> gaptree -> a -> gaptree -> gaptree -> insertResult
 
 val insert : a -> gaptree -> insertResult
 
