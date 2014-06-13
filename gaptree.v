@@ -235,6 +235,9 @@ Ltac leaves :=
 
 Hint Extern 1 => leaves.
 
+Definition isLeaf{g gl gr h f}(t : gaptree g gl gr h f) : {g=#None} + {g<>#None}.
+Proof. xinv t. intros. right. eauto. Qed.
+
 (* Simplify gaps and heights as much as possible. *)
 Ltac gh := repeat (leaves || autoOK).
 
@@ -339,21 +342,17 @@ Section insertion.
   Proof.
     xinv tl. intros tl1 tl2 ok sl.
     unfold gapee in gg.
-    destruct tl2 as [ |? ? ? ? ? ? ? ? ? ? ? [|] tl2l d1 tl2r ok0 s0] eqn:E; clear E; gh.
-    - ec.
-      rewrite ?Eapp_assoc.
-      ec. ea. ec. ec. ec. ec. se. ec. se.
-    - rewrite 2 Eapp_assoc.
-      ec. ec. ea. ec. sg. ea. re. sg. ea. re.
-      instantiate(1:=G0). instantiate(1:=G0). instantiate (1:=ES ho). es ho. 
-      destruct g as [[|]]; simpl. ec. gh. se. instantiate (1:=G0). xinv ok; ec. se.
-    - rewrite ?Eapp_assoc.
-      rewrite group3Eapp.
-      ec. ec. ec. sg. ea. re. ea.
+    case (Gofis tl2 G0); intro; subst.
+    - gh. xinv tl2. intros ? ? ok0 ?. ec. rewrite ?Eapp_assoc. rewrite group3Eapp.
+      ec. ec. sg. ea. re. ea.
       instantiate (2:=ES h). instantiate (1:=G0). destruct gll as [[|]]; simpl.
       xinv ok. xinv ok0; ec. gh. ec. ec. se. ec. ea. sg. ea. re.
       instantiate (2:=ES h). instantiate (1:=G0). destruct g as [[|]]; simpl. es h.
       xinv ok0; ec. gh. ec. ec. se. ec. se.
+    - rewrite ?Eapp_assoc.
+      ec. ec. ea. ec. sg. ea. re. sg. ea. re.
+      instantiate(1:=G0). instantiate(1:=G0). instantiate (1:=ES h). xinv ok; simpl. xinv tr. gh. ec.
+      se. xinv ok. se.
   Qed.
 
   Definition rotateLeft{h fl g gll glr grl grr fr}
@@ -363,21 +362,17 @@ Section insertion.
   Proof.
     xinv tr. intros tr1 tr2 ok sr.
     unfold gapee in gg.
-    destruct tr1 as [ |? ? ? ? ? ? ? ? ? ? ? [|] tr2l d1 tr2r ok0 s0] eqn:E; clear E; gh.
-    - ec.
-      rewrite group3Eapp.
-      ec. ec. ec. ec. ec. se. ea. ec. se.
+    case (Gofis tr1 G0); intro; subst.
+    - gh. xinv tr1. intros ? ? ok0 ?. ec. rewrite ?Eapp_assoc. rewrite group3Eapp.
+      ec. ec. sg. ea. re. ea.
+      instantiate (2:=ES h). instantiate (1:=G0). destruct g as [[|]]; simpl. es h.
+      xinv ok0; ec. gh. ec. se. ec. ea. sg. ea. re.
+      instantiate (2:=ES h). instantiate (1:=G0). destruct grr as [[|]]; simpl. es hr. xinv ok.
+      xinv ok0; ec. gh. ec. se. ec. se. 
     - rewrite group3Eapp.
       ec. ec. ec. sg. ea. re. sg. ea. re.
-      instantiate (1:=G0). instantiate(1:=G0). instantiate (1:=ES ho). es ho.
-      destruct g as [[|]]; simpl. ec. gh. se. ea. instantiate (1:=G0). xinv ok; ec. se.
-    - rewrite ?Eapp_assoc.
-      rewrite group3Eapp.
-      ec. ec. ec. sg. ea. re. ea.
-      instantiate (2:=ES h). instantiate (1:=G0). destruct g as [[|]]; simpl. es h. xinv ok0; ec.
-      gh. ec. se. ec. ea. sg. ea. re.
-      instantiate (2:=ES h). instantiate (1:=G0). destruct grr as [[|]]; simpl. xinv ok.
-      xinv ok0; ec. gh. ec. se. ec. se.
+      instantiate (1:=G0). instantiate(1:=G0). instantiate (1:=ES h). xinv ok; simpl. xinv tl. gh. ec.
+      gh. ec. se. ea. instantiate (1:=G0). xinv ok. se.
   Qed.
 
   Hint Constructors insertResult ires.
@@ -402,7 +397,7 @@ Section insertion.
         se. ec. re. simpl. eauto.
       + assert (hl=ES hr) by xinv ok. subst.
         eelim (rotateRight t d tr H1 c). intros. zauto. se.
-    - destruct tr eqn:E; clear E.
+    - case (isLeaf tr); intro; subst.
       + gh. ec. rewrite group3Eapp. ec. ea. ec. xinv ok. ec. se. ec. re. eauto.
       + ec. rewrite group3Eapp. ec. ea. ea. instantiate (1:=ho). xinv ok. se. ec. re.
   Qed.
@@ -422,10 +417,9 @@ Section insertion.
         se. ec. re. simpl. eauto.
       + assert (hr=ES hl) by xinv ok. subst. 
         eelim (rotateLeft tl d t H1 c). intros. zauto. se.
-    - destruct tl eqn:E; clear E.
+    - case (isLeaf tl); intro; subst.
       + gh. ec. rewrite ?Eapp_assoc. ec. ec. ea. xinv ok. ec. se. ec. re. eauto.
-      + ec. rewrite ?Eapp_assoc. rewrite group3Eapp. ec. ea. ea. instantiate (1:=ho). xinv ok.
-        se. ec. re.
+      + ec. rewrite ?Eapp_assoc. ec. ea. ea. instantiate (1:=ho). xinv ok. se. ec. re.
   Qed.
 
   Definition insert(x : A){g gl gr h f}(t : gaptree g gl gr h f)

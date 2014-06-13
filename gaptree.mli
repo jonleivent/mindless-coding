@@ -45,6 +45,8 @@ val find : a -> gaptree -> findResult
 
 val gof : gaptree -> gap option
 
+val isLeaf : gaptree -> bool
+
 val setGap : gap -> gaptree -> gaptree
 
 type regapR =

@@ -60,6 +60,12 @@ let gof = function
 | Leaf -> None
 | Node (g, t1, d, t2) -> Some g
 
+(** val isLeaf : gaptree -> bool **)
+
+let isLeaf = function
+| Leaf -> true
+| Node (g0, tl, d, tr) -> false
+
 (** val setGap : gap -> gaptree -> gaptree **)
 
 let setGap ng = function
@@ -113,12 +119,12 @@ let rotateRight tl d tr go =
   match tl with
   | Leaf -> assert false (* absurd case *)
   | Node (g0, tl0, d0, tr0) ->
-    (match tr0 with
-     | Leaf -> Node (go, tl0, d0, (Node (G0, Leaf, d, Leaf)))
-     | Node (g1, x, x0, x1) ->
-       (match g1 with
-        | G1 -> Node (go, tl0, d0, (Node (G0, (setGap G0 tr0), d, (setGap G0 tr))))
-        | G0 -> Node (go, (Node (G0, (setGap G0 tl0), d0, x)), x0, (Node (G0, x1, d, (setGap G0 tr))))))
+    if gofis tr0 G0
+    then (match tr0 with
+          | Leaf -> assert false (* absurd case *)
+          | Node (g1, tl1, d1, tr1) ->
+            Node (go, (Node (G0, (setGap G0 tl0), d0, tl1)), d1, (Node (G0, tr1, d, (setGap G0 tr)))))
+    else Node (go, tl0, d0, (Node (G0, (setGap G0 tr0), d, (setGap G0 tr))))
 
 (** val rotateLeft : gaptree -> a -> gaptree -> gap -> gapnode **)
 
@@ -126,12 +132,12 @@ let rotateLeft tl d tr go =
   match tr with
   | Leaf -> assert false (* absurd case *)
   | Node (g0, tl0, d0, tr0) ->
-    (match tl0 with
-     | Leaf -> Node (go, (Node (G0, Leaf, d, Leaf)), d0, tr0)
-     | Node (g1, x, x0, x1) ->
-       (match g1 with
-        | G1 -> Node (go, (Node (G0, (setGap G0 tl), d, (setGap G0 tl0))), d0, tr0)
-        | G0 -> Node (go, (Node (G0, (setGap G0 tl), d, x)), x0, (Node (G0, x1, d0, (setGap G0 tr0))))))
+    if gofis tl0 G0
+    then (match tl0 with
+          | Leaf -> assert false (* absurd case *)
+          | Node (g1, tl1, d1, tr1) ->
+            Node (go, (Node (G0, (setGap G0 tl), d, tl1)), d1, (Node (G0, tr1, d0, (setGap G0 tr0)))))
+    else Node (go, (Node (G0, (setGap G0 tl), d, (setGap G0 tl0))), d0, tr0)
 
 (** val iFitLeft : gap -> gaptree -> gaptree -> a -> gaptree -> insertResult **)
 
@@ -140,9 +146,9 @@ let iFitLeft c tl t d tr =
   then if gofis tr G0
        then Inserted ((Node (G0, t, d, (setGap G1 tr))), Higher)
        else Inserted ((rotateRight t d tr c), ISameH)
-  else (match tr with
-        | Leaf -> Inserted ((Node (G0, t, d, Leaf)), Higher)
-        | Node (g1, g2, d0, g3) -> Inserted ((Node (c, t, d, tr)), ISameH))
+  else if isLeaf tr
+       then Inserted ((Node (G0, t, d, Leaf)), Higher)
+       else Inserted ((Node (c, t, d, tr)), ISameH)
 
 (** val iFitRight : gap -> gaptree -> a -> gaptree -> gaptree -> insertResult **)
 
@@ -151,9 +157,9 @@ let iFitRight c tl d tr t =
   then if gofis tl G0
        then Inserted ((Node (G0, (setGap G1 tl), d, t)), Higher)
        else Inserted ((rotateLeft tl d t c), ISameH)
-  else (match tl with
-        | Leaf -> Inserted ((Node (G0, Leaf, d, t)), Higher)
-        | Node (g1, g2, d0, g3) -> Inserted ((Node (c, tl, d, t)), ISameH))
+  else if isLeaf tl
+       then Inserted ((Node (G0, Leaf, d, t)), Higher)
+       else Inserted ((Node (c, tl, d, t)), ISameH)
 
 (** val insert : a -> gaptree -> insertResult **)
 
