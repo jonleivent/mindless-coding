@@ -78,6 +78,16 @@ make insert and delete operations on gap trees faster than those on
 red-black trees, due to the requirement for fewer rebalancing
 operations.  Find operations are probably slower on gap trees.
 
+Update: it seems that gap trees are jut very slightly MORE balanced
+than red-black trees.  They have the same asymptotic worst unbalance
+case (height = O(2logN) vs AVL tree height = O(1.44logN)), but the
+leaf rules for gap trees make its worst case just slightly better than
+that for red-black trees.  If the leaf rule for gap trees instead
+allowed a node with two leaf children to be either at height 1 or 2,
+then such a tree would be isomorphic to a red-black tree.  This leads
+me to suspect that operations on gap trees are asymptotically
+identical to those on red-black trees.
+
 I also suspect that gap tree functions should be easier to
 implement and less complex than their red-black tree counterparts.
 This conjecture is based on inspection of the corresponding
