@@ -78,15 +78,48 @@ make insert and delete operations on gap trees faster than those on
 red-black trees, due to the requirement for fewer rebalancing
 operations.  Find operations are probably slower on gap trees.
 
-Update: it seems that gap trees are jut very slightly MORE balanced
-than red-black trees.  They have the same asymptotic worst unbalance
-case (height = O(2logN) vs AVL tree height = O(1.44logN)), but the
-leaf rules for gap trees make its worst case just slightly better than
-that for red-black trees.  If the leaf rule for gap trees instead
-allowed a node with two leaf children to be either at height 1 or 2,
-then such a tree would be isomorphic to a red-black tree.  This leads
-me to suspect that operations on gap trees are asymptotically
-identical to those on red-black trees.
+Update: it seems that gap trees are just very slightly MORE balanced
+than red-black trees.  They have the same worst unbalance case (height
+<= 2logN vs AVL tree height <= 1.44logN), but the leaf rules for gap
+trees make its worst case just slightly better than that for red-black
+trees.  If the leaf rule for gap trees instead allowed a node with two
+leaf children to be either at height 1 or 2, then such a tree would be
+isomorphic to a red-black tree.  This leads me to suspect that
+operations on gap trees are asymptotically identical to those on
+red-black trees.
+
+More news - this time, better: Although gap trees are very nearly
+isomorphic to red-black trees, it matters how they were created.  Gap
+trees that are created by insert alone - no deletions - are very
+nearly isomorphic to AVL trees.  They enjoy that nice 1.44logN bound
+on worst case height.  This is because the gap tree insertion
+functions (insert, both iFits, both rebalances) never create a node
+where both of its children have gaps - so gap tree insertion is
+identical to AVL insertion.  I am working on a reformularization of
+gaptree.v that will show this AVL-insertion behavior more clearly - by
+placing both gaps on the parent, but otherwise obeying the same rules.
+(I have also been thinking about other functions needed to make
+fully-functional sets and maps using gap trees - and I think that only
+deletion can break the AVL rules, not other useful functions such as
+merge, union, intersection, etc.).
+
+With regard to deletion, one could then decide whether to use gap tree
+or AVL deletion on a case by case basis on a gap tree.  It would make
+sense to keep track of some metrics over the whole tree (height,
+cardinality, performance, etc.), and decide based on some function of
+those metrics whether a particular deletion should be allowed to
+create a node where both children have gaps (gap tree deletion) or not
+(AVL deletion).  Or, just allow gap trees to gracefully degrade to
+red-black trees under high deletion demand.  Insertions following
+deletions should tend to "consume" the non-AVL nodes along the
+insertion path, turning them into AVL nodes - so the gap tree
+gracefully sways between the AVL and red-black extremes, depending on
+work load.
+
+If you wondered whether some binary search tree application would be
+better suited for AVL trees due to their better worst case height, or
+to red-black trees due to their better deletion performance - gap
+trees with tunable deletion (as above) might be the best alternative.
 
 I also suspect that gap tree functions should be easier to
 implement and less complex than their red-black tree counterparts.
