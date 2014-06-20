@@ -96,12 +96,13 @@ on worst case height.  This is because the gap tree insertion
 functions (insert, both iFits, both rebalances) never create a node
 where both of its children have gaps - so gap tree insertion is
 identical to AVL insertion.  I am working on a reformularization of
-gaptree.v that will show this AVL-insertion behavior more clearly - by
-placing both gaps on the parent, but otherwise obeying the same rules.
-(I have also been thinking about other functions needed to make
-fully-functional sets and maps using gap trees - and I think that only
-deletion can break the AVL rules, not other useful functions such as
-merge, union, intersection, etc.).
+gaptree.v (which now exists: gaptreeb.v and generated OCaml
+gaptreeb.ml) that will show this AVL-insertion behavior more clearly -
+by placing both gaps on the parent, but otherwise obeying the same
+rules.  (I have also been thinking about other functions needed to
+make fully-functional sets and maps using gap trees - and I think that
+only deletion can break the AVL rules, not other useful functions such
+as merge, union, intersection, etc.).
 
 With regard to deletion, one could then decide whether to use gap tree
 or AVL deletion on a case by case basis on a gap tree.  It would make
@@ -120,6 +121,10 @@ If you wondered whether some binary search tree application would be
 better suited for AVL trees due to their better worst case height, or
 to red-black trees due to their better deletion performance - gap
 trees with tunable deletion (as above) might be the best alternative.
+
+I've split out a detailed discussion about this property of gap trees
+- swaying gracefully between AVL and red-black trees based on work
+load - to a separate file: gaptreebfacts.txt.
 
 I also suspect that gap tree functions should be easier to
 implement and less complex than their red-black tree counterparts.

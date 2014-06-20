@@ -1,0 +1,429 @@
+(***********************************************************************
+
+Copyright (c) 2014 Jonathan Leivent
+
+Permission is hereby granted, free of charge, to any person obtaining
+a copy of this software and associated documentation files (the
+"Software"), to deal in the Software without restriction, including
+without limitation the rights to use, copy, modify, merge, publish,
+distribute, sublicense, and/or sell copies of the Software, and to
+permit persons to whom the Software is furnished to do so, subject to
+the following conditions:
+
+The above copyright notice and this permission notice shall be
+included in all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE
+LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
+WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+***********************************************************************)
+
+The purpose of this file is to provide justification for the assertion
+that gap trees are a very happy medium between AVL trees and red-black
+trees.  Among other things...
+
+------------------------------------------------------------------------
+
+As was previously stated about gaptree.ml, gaptreeb.ml demonstrates
+that the rotation functions iRotateRight, iRotateLeft, dRotateRight,
+and dRotateLeft are called at most once per insertion or deletion.
+This is obvious from the code because the rotation functions are only
+called on branches of the "Fit" functions that also return ISameH or
+DSameH - and once returned, those "Same" values never induce any
+subsequent Fit calls (since Fit calls only occur on Higher or Lower
+valued match branches) on the returns up the tree.  Further note that
+the rotations performed are either one single or one double rotation
+per rotation function call.  This "at most one (small) set of
+rotations per insertion or deletion" behavior is true for red-black
+trees as well, but not (in the case of deletion) for AVL trees,
+although AVL trees supposedly do have an amortized O(1) rotation cost
+per deletion.
+
+Below are observations that suggest that gap trees created by insert
+alone are identical to AVL trees - and that each deletion "deforms" a
+gap tree away from an AVL tree by at most one node, while subsequent
+insertions (and even in certain cases subsequent deletions) can repair
+that deformation.  The reason to favor being identical to AVL trees is
+that AVL trees enjoy a lower (1.44logN) worst case height vs.
+red-black trees (2logN), and thus tend to have faster searches.
+
+First note that a gap tree where there are no nodes that have gaps to
+both children - which we will refer to as G1-G1 (from the appearance
+of the G1 constant in gaptreeb.v and gaptreeb.ml) nodes below - is
+identical to an AVL tree.  Their rules may be stated differently, but
+end up with the same constraint: that at most one child of a node can
+have a gap in height of 1 between it and its parent.  The remaining
+observations are based on the generated OCaml code:
+
+1. Unlike gaptree.v and its output gaptree.ml, gaptreeb.v and its
+output gaptreeb.ml move the gap bits from the children into the parent
+- meaning that the gap bits on a node refer to the links between that
+node and its children instead of the link between that node and its
+parent.  Even though this movement doubles the number of balance bits
+in the tree, the result is identical in footprint to AVL trees.  Also
+notice that the gap tree leaf rule is maintained in gaptreeb by a
+separate constraint on heights: "hl=#0 -> hr=#0 -> ho=#0" meaning that
+a node with two leaf children can only be at height 1 (= ES ho).
+However, by migrating the bits into the parent node, a small
+alteration occurs in the code in gaptreeb, which can now use a gap bit
+even if the child is a leaf.  The alteration causes the "isLeaf"
+predicate usage to move from insertion to deletion.  The movement of
+bits, along with various other related changes (functional instead of
+relational constraints on gaps) was originally done to test whether
+that would improve on proof automation - which it does at least for
+the insertion functions.  It was only after examining the resulting
+code generated (gaptreeb.ml) that I noticed the AVL-like behavior of
+gap tree insertion.
+
+2. Insertion never produces a non-AVL "G1-G1" node.  The only time
+insertion uses the G1 constant is on the last branches of both iFit
+functions, but the node produced there always has a G0 child as well.
+Insertion does not call gflip, and only uses gap variables at
+positions different from their original binding to assign gaps when
+the other child is G0 - and there is no other way to create a G1 gap
+which was previously a G0 cap.
+
+3. Insertion can consume a non-AVL G1-G1 node - the first two branches
+of both iFit functions can do so, for example.
+
+4. Deletion produces at most one non-AVL G1-G1 node.  Note that
+tryLowering does not (it actually consumes G1-G1 nodes).  Note that
+delMinOrMax only produces a G1-G1 node on the G1-G1 branch (its first
+branch) - so that is not a production of a new G1-G1 node, but just
+the insertion of a new right subtree into an existing G1-G1 node.  The
+delete, delmin, and delmax functions don't produce any G1-G1 nodes
+themselves.  All callers of gflip use it only when the other child is
+G0.  Only the dFit and dRotate functions can construct a G1-G1 node.
+However, whenever a dFit function produces a G1-G1 node, it returns
+DSameH, implying that no other dFit (and hence no other dRotate) calls
+will occur during the deletion.
+
+5. Deletion can also consume non-AVL G1-G1 nodes - such as on the
+first branches of both dFit functions, as well as tryLowering.
+Further inspection shows that, other than the "NoMin" and "NoMax"
+branches of delmin and delmax, all branches that return "Lower" also
+ensure that the node at that point is not a G1-G1 node.  This suggests
+that, in order for deletion to increase the number of G1-G1 nodes by
+1, the point at which the return up the tree transitions from Lower to
+DSameH results must be between the deletion site and the lowest G1-G1
+node on the path between that site and the root.  Thus it may be
+difficult to create a gap tree with many G1-G1 nodes, as doing so
+requires a very organized pattern of deletions.
+
+6. An interesting thing happens when one attempts to remove the leaf
+rule constraint (hl=#0 -> hr=#0 -> ho=#0) in gaptreeb.  On the
+surface, it should be removable because there are now enough gap bits
+in gaptreeb (unlike gaptree) to allow G1-G1 nodes where both children
+are leaves.  However, removing this rule seems to cause problems for
+the deletion proofs - it becomes very hard (maybe impossible?) to
+constrain the deletion code in the absence of the leaf rule such that
+it performs at most one rotation.  The problems occur because when
+deleting the value at a G1-G1 node where both children are leaves, the
+height drops by 2 instead of 1, as there are no subtrees with which to
+get a substitute root via a delmin or delmax call.
+
+7. Was the movement of gap bits from children to parents (gaptree ->
+gaptreeb) responsible for some or all of these benefits?  It's much
+more difficult to determine if these benefits exist in gaptree.ml.
+For example, consider the first branch of the iFit functions in
+gaptree.ml - they call setGap G1 on a child, and the gap of the other
+child isn't obvious.  However, the reason for the setGap G1 call in
+those cases is because the replacement child is higher than the
+original, and so has a gap of G0.  My intuition is that gaptree has
+the same benefits as gaptreeb - that merely moving the gap bits around
+does nothing other than transfer the point where isLeaf needs to be
+used to preserve the leaf rule.  The extra bits in gaptreeb at nodes
+with leaf children are redundant.  So, if saving a bit per node is
+important to you, use gaptree instead of gaptreeb.
+
+------------------------------------------------------------------------
+
+Do red-black trees also have this AVL-on-insertions behavior?
+Certainly not in the formulation given here, and quite possibly in any
+formulation.  First note that gaps in a red-black tree occur only
+between a black node and a black child.  A G1-G1 node is then always
+black with both children black - which can be leaves.
+
+Consider the following red-black tree (ignoring the arbitrary rule
+that requires roots of red-black trees to be black - this rule can be
+ignored for now - it only adds an extra G1-G1 node for no reason in
+some cases):
+
+               R(6)
+       B(4)            B(8)
+   R(1)    R(5)     R(7)   R(9)
+
+Insert the value 2:
+
+                    B(6)
+        R(2)
+    B(1)    B(4)            B(8)
+                R(5)    R(7)    R(9)
+
+Already, B(1) is a G1-G1 node, since it has gaps between it and both
+(leaf) children.  So, quite easily, G1-G1 nodes can appear near the
+leaves of a red-black tree.  How about more internal nodes?  Consider
+further insertions into this tree that are all > 6.  At some point,
+the root has to be raised.  The first stage is to replace it with a
+red node - but that requires "blackening" (calling red2black in
+redblack.ml) R(2) to make B(2), which is then an internal G1-G1 node.
+In fact, quite obviously, every call to red2black will create a G1-G1
+node, since its children are both black (because it is initially red).
+
+Is it necessary for a red-black tree to work this way? Could G1-G1
+nodes be avoided during insertion?  No: there is no way to create a
+4-node red-black tree doesn't have a G1-G1 node.  Can G1-G1 internal
+nodes be avoided?  This is more difficult to answer - it amounts to
+(at least) removing the red2black function and replacing it with a
+more complex set of rotations.  Most likely, the result, if it could
+be achieved, would be a gap tree.  Although, as we have seen above,
+the leaf rule in gap trees drastically simplifies gap tree deletion -
+yet red-black trees of necessity have G1-G1 nodes with leaf children,
+and so no equivalent of a gap tree leaf rule could be added to save
+some modified red-black tree deletion from the added complexity of
+dealing with height reductions by 2.  Again, falling back on
+intuition, this suggests to me that no set of rotations can be used to
+replace the red2black function in red-black trees such that rotations
+are kept at O(1) per deletion.
+
+------------------------------------------------------------------------
+
+Now, an argument for why gap trees are at worst no worse than
+red-black trees.
+
+The target metric is the worst case height <= 2logN.  Gap trees appear
+to obey this quite trivially due to the nature of their links: in the
+worst case where every link has a gap (G1 in the code), the "height"
+parameter of the root (visible in the Coq definitions in gaptree.v and
+gaptreeb.v, but erased in the OCaml output) is at most twice the true
+height of the tree - every path from a leaf to the root is the
+alternating sequence node, gap, node, gap, node, gap .... node.  But,
+not quite - because we're counting gaps towards the height...
+
+A better comparison of worst cases can be made by examining the
+recurrence relations induced by worst-case trees of the various kinds.
+The worst case for a given "true" height is for a tree with the
+minimum number of nodes capable of sustaining that true height.  Care
+must be given to distinguish between the true height - the actual
+count of nodes (not gaps, not skipping some nodes) along the longest
+path between the root and a leaf - and the height parameters used in
+the constraints and proofs (the "untrue" heights - the black height
+for red-black trees, and the gap-counting height for gap trees).
+
+For AVL trees, the true height is the parameterized height.  Said
+differently, there is always at least one gap-free path from the root
+to a leaf in an AVL tree, and the count of nodes on that path matches
+the AVL tree's parameterized height.  Worst-case (sparsest) AVL trees
+also have perhaps the simplest recurrence relation:
+
+  A(0) = 0
+  A(1) = 1
+  A(H) = 1 + A(H-1) + A(H-2)
+
+The terms of A(H) are induced as follows: 1 for the new root, A(H-1)
+for the subtree that doesn't have a gap to the root, A(H-2) for the
+subtree that does have a gap to the root.  Only these G0-G1 cases (in
+gap tree terminology) are considered, as G0-G0 cases would not yield a
+worst case, and G1-G0 cases result in the same recurrence relation as
+G1-G0 cases.
+
+The recurrence relation for AVL trees solves to the H'th Fibonacci
+number plus H.  To see the worst-case height, we need to solve for H.
+In this case, a closed-form solution is possible, but we can easily
+just set up this recurrence relation in a spread sheet
+(recurrences.ods) and calculate up to a reasonably high H - 50 should
+be good enough - and just get the numerical result.  That result is
+approximately H = 1.44log(A(H)).  Since A(H) is the number of nodes,
+and any other height is less than or equal to this worst case H, we
+get: height <= 1.44log(N) (logs are base 2).
+
+Red-black trees are more complex to analyze this way.  First of all,
+we need to determine what a worst case is.  For a red-black tree, the
+fewest nodes would initially seem to occur when the tree is all
+black.  The recurrence relation in that case is trivial:
+
+  B(0) = 0
+  B(1) = 1
+  B(H) = 1 + B(H-1) + B(H-1)
+
+Unfortunately, these H's are not true heights - they are black
+heights.  It might at first seem like not an important difference, as
+there are only black nodes in this tree, so only counting black nodes
+seems fine.  But, the addition of a very few red nodes can drastically
+increase the true height, even though the parameterized black height
+doesn't change.  What happens is that the worst case becomes a nearly
+all black tree, but with a single path - which we shall call the
+"spine" - that alternates red and black.  We can place the spine
+anywhere, but it is easiest for the recurrence relation if we keep it
+always to one side - we'll pick the left side.  The recurrence
+relation then has alternating red and black steps.  Also, we will have
+to distinguish between black trees rooted in the spine vs. elsewhere.
+We'll use B' for spine-rooted Bs.
+
+First, the non-spine part:
+
+  B(0) = 0
+  B(2) = 1
+  B(4) = 1 + B(2) + B(2)
+  B(H) = 1 + B(H-2) + B(H-2) for even H's only
+
+The spine is:
+
+  B'(0) = 0
+  R(1) = 1
+  B'(2) = 1 + R(1) + B(0)
+  R(3) = 1 + B'(2) + B(2)
+  B'(H) = 1 + R(H-1) + B(H-2) for even H's
+  R(H) = 1 + B'(H-1) + B(H-1) for odd H's
+
+The root is the top of the spine, sometimes R(H), others B'(H).
+Again, shoving this all into a spread sheet, we get: height <=
+2log(N), or rather something very close to that.
+
+Gap trees now show their similarity to red-black trees.  As with an
+all-black red-black tree, we can have (almost) a gap tree where there
+are gaps between all nodes.  The "almost" refers to the leaf rule - we
+can't have a node with two leaf children and gaps to both.  But,
+certainly above the leaves, the sparsest gap tree resembles an
+all-black red-black tree.
+
+As with red-black trees, this ignores the difference between
+parameterized height and true height - since in this case gaps are
+counted towards height.  To get back to true height, we have to
+construct a gap-free spine.  We'll use G for the non-spine part and G'
+for the spine part:
+
+  G(0) = 0
+  G(1) = 1
+  G(2) = 2
+  G(3) = 1 + G(1) + G(1)
+  G(4) = 1 + G(2) + G(2)
+  G(H) = 1 + G(H-2) + G(H-2)
+
+Notice how similar this spineless G recurrence relation is to the
+spineless B one above - identical except for the start, where the leaf
+rule produces a subtle change - an addition of a few nodes.  Now G':
+
+  G'(0) = 0
+  G'(1) = 1
+  G'(H) = 1 + G'(H-1) + G(H-2)
+
+Again, continuing with a spread sheet, we get height <= 2log(N).  The
+leaf rule thus adds a few nodes from time to time, but not enough to
+upset the overall worst case ratio of (approximately) 2.
+
+Why doesn't this worst-case analysis of heights demonstrate that gap
+trees are "just as bad" as red-black trees?  Because the analysis was
+done independently of how the trees involved could have been
+constructed.  While it would be interesting (the proverbial "exercise
+left for the reader") to see what the worst case red-black tree
+constructed only from inserts can be, we previously argued above that
+it will contain G1-G1 nodes, and not just near the leaves - while a
+worst case gap tree constructed only from inserts does not.
+
+------------------------------------------------------------------------
+
+A final question: Is there an even better alternative to gap trees -
+one that has AVL-like shape when only inserts are used to construct
+it, but which does much better than red-black trees in the worst case,
+yet also has the nice O(1) rotation behavior of gap and red-black
+trees for both insertion and deletion, and also keeps the nice
+just-a-few-extra-bits-per-node property?
+
+We can make some guesses.  I thought of two possible trees two examine
+- both seem like they should have the just-a-few-extra-bits-per-node
+property to maintain their constraints.  The first I will call a
+"left-hybrid" between AVL and gap trees, because the rule is that the
+root of each left subtree must obey the AVL (no G1-G1) rule, while the
+remainder of the tree is a gap tree.  The second I will call a "pair"
+tree (pun intended), because the rule is that G1-G1 nodes must not
+have gaps to their parents - hence every node is paired with at least
+one other (or a leaf), its parent or a child, via a gapless link.
+
+Intuitively, left-hybrid and pair trees should have fewer gaps in the
+worst case than gap trees, but neither would have as few as AVL trees.
+In fact, neither requires a gap-free path from the root to a leaf -
+so, as with red-black trees and normal gap trees, we again have to
+differentiate between some parametric height that would count gaps,
+and the true height that doesn't.  We get to decide whether they have
+leaf rules or not.  We don't expect a leaf rule to change things much
+in terms of worst-case analysis.  So, take the leaf rule for both - it
+may be useful when implementing the functions.  The leaf rule just
+means that any tree at H=2 can't have just 1 node.
+
+Left-hybrids first.  As with gap trees and red-black trees, we can
+break down to parts of the recurrence relation - but unlike with gap
+trees and red-black trees, the "spine" part of the recurrence relation
+is used for all left children, not just the spine.  So we get a
+mutually-recursive recurrence relation:
+
+  L(0) = 0
+  L(1) = 1
+  L(2) = 2
+  L(H) = 1 + L'(H-2) + L(H-2)
+  
+  L'(0) = 0
+  L'(1) = 1
+  L'(2) = 2
+  L'(H) = 1 + L'(H-1) + L(H-2)
+
+A visit to the spread sheet, and we get something like: height <=
+1.674log(N).  That's certainly a candidate!  It remains to be seen if
+it can be implemented to have purely-AVL-like behavior for insert, as
+is the case with gap trees.  And O(1) rotations.
+
+Now pair trees.  Here the recurrence relation comes in three parts:
+nodes that are allowed to be G1-G1 (gaps to both children), nodes that
+have a gap to their parent, and nodes on the spine that can only have
+a gap to their right child.  P will be the G1-G1 nodes, P' on the
+spine, and P" nodes have a gap to their parent:
+
+  P(0) = 0
+  P(1) = 1
+  P(2) = 2
+  P(H) = 1 + P"(H-2) + P"(H-2)
+
+  P"(0) = 0
+  P"(1) = 1
+  P"(2) = 2
+  P"(H) = 1 + P(H-1) + P"(H-2)
+
+  P'(0) = 0
+  P'(1) = 1
+  P'(2) = 2
+  P'(H) = 1 + P'(H-1) + P"(H-2)
+
+Spread sheet time: We get height <= 1.652log(N).  Another candidate,
+even (ever so slightly) better than left-hybrids!  Again, the same
+caveats - it remains to be seen yada yada.
+
+------------------------------------------------------------------------
+
+Back to Mindless Coding.  We now have several avenues to pursue:
+left-hybrids and pair trees.  It should take just a few hours of
+mindless coding to get a good idea for each one whether it can be
+implemented with the desired properties (really just need insert and
+delmin, with their rebalancing functions, to have a good idea) - and
+we also get a verified (and erased) implementation as a side effect.
+Another thing to do: take the best tree of the bunch (or two), and
+mindlessly-code up a full library of set and map functions based on
+that tree.  That shouldn't take very long, either.
+
+And that ultimately is the point.  Yes, gap trees are fun, but the
+point I'm trying to establish with this work is that using a
+dependently-typed language featuring interaction with the proof
+assistant/type checker (like Coq, but also Agda and Idris), and doing
+so with fully constrained types that specify the problem at hand
+(mixing in erasability so that we don't worry about how those
+constraints and their proofs impact runtime - because they won't - so
+we're free to constrain away), and we can even create new algorithms
+from whole cloth without breaking a mental sweat. Sometimes even by
+accident.  And they're verified!
+
+Oh - and that issue about actually running some extracted code - yeah
+- that should get done, too...
