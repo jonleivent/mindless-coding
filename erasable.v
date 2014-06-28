@@ -60,14 +60,17 @@ Ltac unerase_hyp H :=
   hnf in H; try simpl in H;
   first [match type of H with _=_ => apply Erasable_inj in H end
         |induction H as [H] using Erasable_elim
+        |let X := fresh H in 
+           induction H as [W] using Erasable_elim; clear H; rename W into H
         |match type of H with
              ex _ =>
              let H1 := fresh in
              let H2 := fresh in
-             destruct H as [H1 [H2 H]];
+             let H3 := fresh in
+             destruct H as [H1 [H2 H3]];
                try unerase_hyp H1;
                unerase_hyp H2;
-               rewrite H2 in H; clear H2; clear H1
+               rewrite H2 in H3; clear H2 H1 H; rename H3 into H
          end].
 
 Ltac unerase0 :=

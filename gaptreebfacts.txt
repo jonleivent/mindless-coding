@@ -410,6 +410,34 @@ mindless coding to get a good idea for each one whether it can be
 implemented with the desired properties (really just need insert and
 delmin, with their rebalancing functions, to have a good idea) - and
 we also get a verified (and erased) implementation as a side effect.
+
+-- Update: I have tried several different hybrids (although no
+   asymmetric ones, like the left-hybrid above), and have come to the
+   conclusion that the original gap tree (which, to differentiate it
+   from a large family of alternatives, I've been calling a 3-gap
+   tree; the "pair" tree above is a 2-gap tree) is the only one that
+   combines high density insertion (AVL-like "sparsity" of 1.44logN)
+   with O(1) rotations for both insertion and deletion.  I did get to
+   see what failures look like in mindless coding, for example, when
+   trying to force a tree to be O(1) rotations for delete when it has
+   a higher density (lower sparsity) than the 2logN worst case for
+   3-gap trees.  In one case, on a hybrid defined as alowing 3-gap
+   nodes (like the original 3-gap tree) only if at least one child is
+   AVL-like with respect to its children (not G1-G1) - which has a
+   sparsity of 1.8134logN - the result of dealing with the inability
+   of deletion to be O(1) was that the final extracted deletion has
+   just one minor exception - a single branch where a "DSameH" result
+   can under the right (or, rather "wrong") conditions induce a
+   "Lower" result.  Those conditions are exactly when the above
+   constraint would be violated: when the result returned by deletion,
+   its sibling, and the original parent are all G1-G1.
+
+   The failures are illuminating, and I certainly know a lot more
+   about binary search trees than just a few weeks ago - but the point
+   to this particular project is to fine tune techniques that simplify
+   the generation of verified and useful code.  So, I'll move on to a
+   library for 3-gap trees...
+
 Another thing to do: take the best tree of the bunch (or two), and
 mindlessly-code up a full library of set and map functions based on
 that tree.  That shouldn't take very long, either.
