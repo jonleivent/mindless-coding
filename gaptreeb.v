@@ -582,6 +582,10 @@ End deletion.
 
 Require Import Arith Omega Min Max Psatz natsind.
 
+(*unS is a proven-safe pred function - so we don't have to worry about
+OCaml's pred function having a different semantics (Z-style
+go-negative) from Coq's (N-style stop-at-0).*)
+
 Definition unS(n : nat){pn}(H : ES pn=#n) : {n' : nat | pn=#n'}.
 Proof.
   destruct n.
@@ -592,14 +596,33 @@ Defined.
 Definition g2h{ph g h}(H : ES (gS g h) = #ph) : {h' : nat | #h'=h}.
 Proof.
   destruct g; simpl in H.
-  - exists (pred (pred ph)). unerase. omega.
-  - exists (pred ph). unerase. omega.
+  - elim (unS _ H). intros hm1 H2. elim (unS _ H2). intros hm2 ->. eexists. re.
+  - elim (unS _ H). intros hm1 ->. eexists. re.
 Qed.
 
 Ltac ses := match goal with
                 |- context[#(S ?X)] => change (#(S X)) with (ES #X) end.
 
 Section joining.
+
+  (* Join takes two trees sorted with respect to each other and a
+  "middle" element, and combines them all into a single tree - it acts
+  like a generalized tree node constructor that doesn't care that the
+  heights of the two tree args match in any way.  It is a foundational
+  function needed for the sets library.  Note that the version here
+  demonstrates the same AVL-like qualities (no G1G1 nodes are added,
+  each join does at most 1 rotate then stops propagating changes up
+  the tree) as does gaptree insert. 
+
+  The implementation of join is split in half - joinle is for when the
+  left tree's height is <= the right tree's height, joinge for when it
+  is >=.  This split is done so that join can use structural induction
+  on the higher tree.  As seen in sets.v, we now have a general
+  measured recursion scheme based on erased nats that could be used
+  here to keep join as a single function.  However, not much gets
+  simplified by doing so (I tried it).
+
+*)
   
   Inductive jres(gl gr: EG)(hil hih : EN) : EN -> Set :=
   | JSameH : jres gl gr hil hih hih
@@ -824,6 +847,7 @@ Extract Inductive delout => "( * )" [ "(,)" ].
 Extract Inlined Constant eq_nat_dec => "(=)".
 Extract Inlined Constant lt_dec => "(<)".
 Extract Inlined Constant plus => "(+)".
-
+Extract Inlined Constant pred => "FAIL unchecked use of pred".
+Extract Inlined Constant unS => "pred".
 Extraction "gaptreeb.ml" find insert delmin delmax delete join gaphtree_tree.
 

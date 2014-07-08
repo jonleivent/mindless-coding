@@ -20,8 +20,6 @@ type 'a sig0 =
   'a
   (* singleton inductive, whose constructor was exist *)
 
-val pred : nat -> nat
-
 type 'a eqDec = 'a -> 'a -> bool
 
 type 'a ordered = { eq_dec : 'a eqDec; compare : ('a -> 'a -> comparison);
@@ -135,8 +133,6 @@ type deleteResult0 =
 | Deleted0 of ( * )
 
 val delete0 : a -> gaptree -> deleteResult0
-
-val unS : nat -> nat
 
 val g2h : nat -> gap -> nat
 

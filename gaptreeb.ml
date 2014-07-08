@@ -19,12 +19,6 @@ type 'a sig0 =
   'a
   (* singleton inductive, whose constructor was exist *)
 
-(** val pred : nat -> nat **)
-
-let pred n = match n with
-| O -> n
-| S u -> u
-
 type 'a eqDec = 'a -> 'a -> bool
 
 type 'a ordered = { eq_dec : 'a eqDec; compare : ('a -> 'a -> comparison);
@@ -371,12 +365,6 @@ let rec delete0 x = function
          | DSameH -> (Node (gl, tl, d, gr, t0)),DSameH
          | Lower -> if isLeaf tl then (Node (G0, Leaf, d, G0, Leaf)),Lower else dFitRight gl gr tl d t0)))
 
-(** val unS : nat -> nat **)
-
-let unS = function
-| O -> assert false (* absurd case *)
-| S n0 -> n0
-
 (** val g2h : nat -> gap -> nat **)
 
 let g2h ph = function
@@ -403,12 +391,12 @@ let joinle h1 t1 d h2 t2 =
            then JoinResult ((S (S h1)), (Node (G1, t4, d, G0, t3)), JHigher)
            else (match gl with
                  | G1 ->
-                   let JoinResult (x, x0, x1) = f tl tl t4 (unS (unS h3)) in
+                   let JoinResult (x, x0, x1) = f tl tl t4 (pred (pred h3)) in
                    (match x1 with
                     | JSameH -> JoinResult (h3, (Node (gl, x0, d0, gr, tr)), JSameH)
                     | JHigher -> JoinResult (h3, (Node (G0, x0, d0, gr, tr)), JSameH))
                  | G0 ->
-                   let JoinResult (x, x0, x1) = f tl tl t4 (unS h3) in
+                   let JoinResult (x, x0, x1) = f tl tl t4 (pred h3) in
                    (match x1 with
                     | JSameH -> JoinResult (h3, (Node (G0, x0, d0, gr, tr)), JSameH)
                     | JHigher ->
@@ -430,12 +418,12 @@ let joinge h1 t1 d h2 t2 =
            then JoinResult ((S (S h2)), (Node (G0, t3, d, G1, t4)), JHigher)
            else (match gr with
                  | G1 ->
-                   let JoinResult (x, x0, x1) = f tr tr (unS (unS h3)) t4 in
+                   let JoinResult (x, x0, x1) = f tr tr (pred (pred h3)) t4 in
                    (match x1 with
                     | JSameH -> JoinResult (h3, (Node (gl, tl, d0, gr, x0)), JSameH)
                     | JHigher -> JoinResult (h3, (Node (gl, tl, d0, G0, x0)), JSameH))
                  | G0 ->
-                   let JoinResult (x, x0, x1) = f tr tr (unS h3) t4 in
+                   let JoinResult (x, x0, x1) = f tr tr (pred h3) t4 in
                    (match x1 with
                     | JSameH -> JoinResult (h3, (Node (gl, tl, d0, G0, x0)), JSameH)
                     | JHigher ->
@@ -485,7 +473,7 @@ let gaphtree_tree =
         let t1,dr0 = dr in
         (match dr0 with
          | DSameH -> DelminNode (m, (Gaphtree (h, t1)))
-         | Lower -> DelminNode (m, (Gaphtree ((unS h), t1))))
+         | Lower -> DelminNode (m, (Gaphtree ((pred h), t1))))
     in
     Obj.magic x __ __); delmax = (fun _ t ->
     let Gaphtree (h, t0) = Obj.magic t in
@@ -497,7 +485,7 @@ let gaphtree_tree =
         let t1,dr0 = dr in
         (match dr0 with
          | DSameH -> DelmaxNode (m, (Gaphtree (h, t1)))
-         | Lower -> DelmaxNode (m, (Gaphtree ((unS h), t1))))
+         | Lower -> DelmaxNode (m, (Gaphtree ((pred h), t1))))
     in
     Obj.magic x __ __); delete = (fun x _ t ->
     let Gaphtree (h, t0) = Obj.magic t in
@@ -509,7 +497,7 @@ let gaphtree_tree =
         let t1,dr0 = dr in
         (match dr0 with
          | DSameH -> Deleted (Gaphtree (h, t1))
-         | Lower -> Deleted (Gaphtree ((unS h), t1)))
+         | Lower -> Deleted (Gaphtree ((pred h), t1)))
     in
     Obj.magic x0 __) }
 
