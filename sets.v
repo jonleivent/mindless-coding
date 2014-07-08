@@ -40,6 +40,8 @@ Context {A : Type}.
 Context {ordA : Ordered A}.
 Context {treeA : Tree A}.
 
+Opaque tree.
+
 Require Import Arith Omega natsind.
 
 Notation EL := (##(list A)).
@@ -445,6 +447,20 @@ Ltac unlift_all_work_around_3410 :=
 (* In the remaining sections, the "proof-parts" are in {} braces - and
 should all eventually get automated - note how redundant they are. *)
 
+Ltac sins1 := match goal with
+               | |- lts _ _ => eapply ltsinlts
+               | |- slt _ _ => eapply sltinslt
+             end;
+             [ |intros ? I;unlift_all_work_around_3410;
+                 match goal with H:_|-_ => eapply H in I; intuition eauto end| ];ea.
+
+Ltac sins2 := match goal with
+               | |- lts _ _ => eapply lts2inlts
+               | |- slt _ _ => eapply slt2inslt
+             end;
+            [ | |intros ? I; unlift_all_work_around_3410;
+                 match goal with H:_|-_ => eapply H;[exact I|..] end|..];ea.
+
 Section union.
 
   Inductive unionResult(f1 f2 : EL) : Type :=
@@ -463,17 +479,14 @@ Section union.
       case (split d t2). intros found fx f2l f2r -> efx t2l t2r s ni.
       Obtain (unionResult fl f2l) as [f t u].
       Obtain (unionResult fr f2r) as [f0 t0 u0].
+      assert (Esorted(f++^d++f0)) by (Esorteds; se; sins2).
       ec. eapply (join t d t0).
       { intros a. clear - u u0 efx.
         rewrite ?EInapp.
         rewrite ?u. rewrite ?u0.
         destruct found; subst; clear; intuition auto. }
   Grab Existential Variables.
-    Esorteds. clear - stl str st2l st2r st st0 u0 u st1 s. se.
-    { eapply lts2inlts. exact H. exact H1. 2:ea.
-      intros. unlift u. rewrite <-u. ea. }
-    { eapply slt2inslt. exact H0. exact H2. 2:ea.
-      intros. unlift u0. rewrite <-u0. ea. }
+      all:eauto.
   Qed.
 
 End union.
@@ -549,6 +562,7 @@ Section intersection.
       case (split d t2). intros found fx f2l f2r -> efx t2l t2r s ni.
       Obtain (intersectResult fl f2l) as [f t u].
       Obtain (intersectResult fr f2r) as [f0 t0 u0]. clear Recurse.
+      assert(Esorted (f++^d++f0)) by (Esorteds; se; sins1).
       destruct found.
       + subst fx. ec. eapply (join t d t0).
         { intros a. clear - u u0 st1 st2 s.
@@ -567,20 +581,7 @@ Section intersection.
           intuition eauto. all:subst.
           all:try solve [repeat (left + right); repeat split; try ea; se]. }
   Grab Existential Variables.
-    { Esorteds. clear - stl str st2l st2r st st0 u0 u s st1.
-      se.
-      - eapply ltsinlts. ea. intros a0 H3.
-        unlift u. rewrite u in H3. tauto. ea.
-      - eapply sltinslt. ea. intros a0 H3.
-        unlift u0. rewrite u0 in H3. tauto. ea. }
-    { Esorteds.
-      cut (Esorted(f++^d++f0)).
-      { intro. se. } clear ni.
-      se.
-      - eapply ltsinlts. ea. intros a0 H3.
-        unlift u. rewrite u in H3. tauto. ea.
-      - eapply sltinslt. ea. intros a0 H3.
-        unlift u0. rewrite u0 in H3. tauto. ea. }
+        all:eauto.
   Qed.
 
 End intersection.
@@ -603,6 +604,7 @@ Section setdifference.
       case (split d t2). intros found fx f2l f2r -> efx t2l t2r s ni.
       Obtain (setdiffResult fl f2l) as [f t u].
       Obtain (setdiffResult fr f2r) as [f0 t0 u0]. clear Recurse.
+      assert(Esorted (f++^d++f0)) by (Esorteds; se; sins1).
       destruct found.
       + subst fx. ec. eapply (merge t t0).
         { intros a. clear - u u0 st1 st2 s.
@@ -625,20 +627,7 @@ Section setdifference.
           se. assert (slt a fr) by (solve_sorted). eauto.
           eauto. }
   Grab Existential Variables.
-    { Esorteds.
-      cut (Esorted(f++^d++f0)).
-      { intro. se. } clear ni.
-      se.
-      - eapply ltsinlts. exact H. intros a0 H5.
-        unlift u. rewrite u in H5. tauto. ea.
-      - eapply sltinslt. exact H0. intros a0 H5.
-        unlift u0. rewrite u0 in H5. tauto. ea. }
-    { Esorteds.
-      se.
-      - eapply ltsinlts. exact H. intros a0 H5.
-        unlift u. rewrite u in H5. tauto. ea.
-      - eapply sltinslt. exact H0. intros a0 H5.
-        unlift u0. rewrite u0 in H5. tauto. ea. }
+        all:eauto.
   Qed.
 
 End setdifference.
@@ -660,6 +649,7 @@ Section filtering.
     - intros fl tl d fr tr ->.
       Obtain (filterResult filt fl) as [flo tlo ulo].
       Obtain (filterResult filt fr) as [fro tro uro].
+      assert (Esorted (flo++^d++fro)) by (Esorteds; se; sins1).
       case_eq (filt d).
       + intro FT.
         ec. eapply (join tlo d tro).
@@ -680,19 +670,7 @@ Section filtering.
           all:try solve [repeat (left + right); repeat split; try ea; se].
           rewrite FF in *. discriminate. }
   Grab Existential Variables.
-    { Esorteds.
-      se.
-      - eapply ltsinlts. ea. intros a0 H5.
-        unlift ulo. rewrite ulo in H5. tauto. ea.
-      - eapply sltinslt. ea. intros a0 H5.
-        unlift uro. rewrite uro in H5. tauto. ea. }
-    { cut (Esorted (flo++^d++fro)).
-      { intro. se. }
-      Esorteds. se.
-      - eapply ltsinlts. ea. intros a0 H5.
-        unlift ulo. rewrite ulo in H5. tauto. ea.
-      - eapply sltinslt. ea. intros a0 H5.
-        unlift uro. rewrite uro in H5. tauto. ea. }
+        all:eauto.
   Qed.
 
 End filtering.
@@ -715,6 +693,8 @@ Section partitioning.
     - intros fl tl d fr tr ->.
       Obtain (partitionResult filt fl) as [fl1 tl1 fl0 tl0 ul1 ul0].
       Obtain (partitionResult filt fr) as [fr1 tr1 fr0 tr0 ur1 ur0].
+      assert (Esorted(fl1++^d++fr1)) by (Esorteds; se; sins1).
+      assert (Esorted(fl0++^d++fr0)) by (Esorteds; se; sins1).
       case_eq (filt d).
       + intro FT.
         ec. eapply (join tl1 d tr1). eapply (merge tl0 tr0).
@@ -749,33 +729,7 @@ Section partitioning.
           all:try solve [repeat (left + right); repeat split; try ea; se].
           eauto. }
   Grab Existential Variables.
-    { Esorteds.
-      se.
-      - eapply ltsinlts. ea. intros a0 H5.
-        unlift ul1. rewrite ul1 in H5. tauto. ea.
-      - eapply sltinslt. ea. intros a0 H5.
-        unlift ur1. rewrite ur1 in H5. tauto. ea. }
-    { cut (Esorted(fl0++^d++fr0)).
-      { intro. se. }
-      Esorteds.
-      se.
-      - eapply ltsinlts. ea. intros a0 H5.
-        unlift ul0. rewrite ul0 in H5. tauto. ea.
-      - eapply sltinslt. ea. intros a0 H5.
-        unlift ur0. rewrite ur0 in H5. tauto. ea. }
-    { cut (Esorted (fl1++^d++fr1)).
-      { intro. se. }
-      se.
-      - eapply ltsinlts. ea. intros a0 H5.
-        unlift ul1. rewrite ul1 in H5. tauto. ea.
-      - eapply sltinslt. ea. intros a0 H5.
-        unlift ur1. rewrite ur1 in H5. tauto. ea. }
-    { Esorteds.
-      se.
-      - eapply ltsinlts. ea. intros a0 H5.
-        unlift ul0. rewrite ul0 in H5. tauto. ea.
-      - eapply sltinslt. ea. intros a0 H5.
-        unlift ur0. rewrite ur0 in H5. tauto. ea. }
+        all:eauto.
 Qed.
 
 End partitioning.
