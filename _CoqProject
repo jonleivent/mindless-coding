@@ -8,3 +8,6 @@ avl.v
 redblack.v
 gaptree.v
 gaptreeb.v
+natsind.v
+tctree.v
+sets.v

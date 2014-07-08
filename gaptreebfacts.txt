@@ -442,6 +442,10 @@ Another thing to do: take the best tree of the bunch (or two), and
 mindlessly-code up a full library of set and map functions based on
 that tree.  That shouldn't take very long, either.
 
+-- Update: added generic tree typeclass (tctree.v) and built set
+   library (sets.v) on top of that, so that all trees can share the
+   same single set implementation (and proofs).
+
 And that ultimately is the point.  Yes, gap trees are fun, but the
 point I'm trying to establish with this work is that using a
 dependently-typed language featuring interaction with the proof

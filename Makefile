@@ -93,12 +93,15 @@ COMPILE_VFILES=common.v\
   solvesorted.v\
   sorted.v\
   erasable.v\
-  ordered.v
+  ordered.v\
+  natsind.v\
+  tctree.v
 
 VFILES:=redblack.v\
   avl.v\
   gaptree.v\
   gaptreeb.v\
+  sets.v\
   $(COMPILE_VFILES)
 
 -include $(addsuffix .d,$(VFILES))
@@ -130,6 +133,7 @@ extracts: $(VOFILES)
 	$(COQBIN)coqtop -batch -l redblack.v
 	$(COQBIN)coqtop -batch -l gaptree.v
 	$(COQBIN)coqtop -batch -l gaptreeb.v
+	$(COQBIN)coqtop -batch -l sets.v
 
 quick:
 	$(MAKE) -f $(firstword $(MAKEFILE_LIST)) all VO=vi

@@ -346,7 +346,7 @@ Section deletion.
   Definition avlish(gl gr : EG) := gl=SG0 \/ gr=SG0.
 
   Inductive tryLowerResult: EG -> EG -> EN -> EL -> Type :=
-  | lowered{h f}(t : gaptree SG0 SG0 h f) : tryLowerResult SG1 SG1 (ES h) f
+  | lowered{h f}(t : gaptree SG0 SG0 (ES h) f) : tryLowerResult SG1 SG1 (ES (ES h)) f
   | lowerFailed{gl gr h f}: avlish gl gr -> tryLowerResult gl gr h f.
 
   Hint Constructors tryLowerResult.
@@ -579,13 +579,251 @@ Section deletion.
   Qed.
 
 End deletion.
-Set Printing Width 92.
+
+Require Import Arith Omega Min Max Psatz natsind.
+
+Definition unS(n : nat){pn}(H : ES pn=#n) : {n' : nat | pn=#n'}.
+Proof.
+  destruct n.
+  - sh. 
+  - exists n. change (#(S n)) with (ES #n) in H. sh. re.
+Defined.
+
+Definition g2h{ph g h}(H : ES (gS g h) = #ph) : {h' : nat | #h'=h}.
+Proof.
+  destruct g; simpl in H.
+  - exists (pred (pred ph)). unerase. omega.
+  - exists (pred ph). unerase. omega.
+Qed.
+
+Ltac ses := match goal with
+                |- context[#(S ?X)] => change (#(S X)) with (ES #X) end.
+
+Section joining.
+  
+  Inductive jres(gl gr: EG)(hil hih : EN) : EN -> Set :=
+  | JSameH : jres gl gr hil hih hih
+  | JHigher : (hil<>hih -> gl<>gr) -> jres gl gr hil hih (ES hih).
+
+  Inductive joinResult(hil hih : EN)(f : EL) : Type :=
+  | JoinResult(h : nat){gl gr} : gaptree gl gr #h f -> jres gl gr hil hih #h -> joinResult hil hih f.
+
+  Hint Constructors joinResult jres.
+
+  Definition joinle(h1 : nat){g1l g1r f1}(t1 : gaptree g1l g1r # h1 f1)(d : A)
+             (h2: nat){g2l g2r f2}(t2 : gaptree g2l g2r # h2 f2)
+             (s : Esorted (f1 ++ ^ d ++ f2))(H : h1 <= h2)
+  : joinResult #h1 #h2 (f1++^d++f2).
+  Proof.
+    generalize_eqs_vars t2.
+    induction t2 eqn:E.
+    - intros. sh.
+      assert (h1=0) by omega. subst. leaves.
+      ec. instantiate (1:=1). ses. ec. ec. ec.
+      eauto. eauto. tauto. ea. ec. tauto.
+    - intros. clear E IHg2. subst ho.
+      case (eq_nat_dec h1 h2); intros.
+      + subst.
+        ec. instantiate (1:=S h2). ses. ec. ea. ea. eauto. eauto. tauto. ea. ec. tauto.
+      + assert (h1<h2) by omega. clear H H1.
+        case (eq_nat_dec (S h1) h2); intros.
+        * subst. clear H2.
+          ec. instantiate (1:=S(S h1)). ses. ec. ea. ea. 
+          instantiate(1:=G1). re. rewrite H0. eauto. rewrite H0. tauto. se. ec. eauto.
+        * assert (S h1<h2) by omega. clear H H2.
+          destruct gl eqn:E.
+          { simpl gS in *.
+            elim (unS h2 H0). intros h2m1 Hh2m1. elim (unS h2m1 Hh2m1). intros h2m2 Hh2m2.
+            eelim (IHg1 g1 eq_refl t1 h2m2 _ _ Hh2m2). intros h ? ? g j. clear IHg1.
+            simple inversion j.
+            - rewrite <-H in *.
+              rewrite group3Eapp. ec. instantiate (1:=h2). rewrite <-H0. ec. ea. ea.
+              instantiate (1:=gl). subst. simpl. re. ea. intros. rewrite H2 in g.
+              simple inversion g. exfalso. unerase. contradict H7. apply app_cons_not_nil.
+              discriminate_erasable. se. ec.
+            - rewrite <-H2 in *.
+              rewrite group3Eapp. ec. instantiate (1:=h2). rewrite <-H0. ec. ea. ea.
+              instantiate (1:=G0). simpl. unerase. omega. ea. eauto. se. ec. }
+          { simpl gS in *.
+            elim (unS h2 H0). intros h2m1 Hh2m1.
+            eelim (IHg1 g1 eq_refl t1 h2m1 _ _ Hh2m1). intros h ? ? g j. clear IHg1.
+            simple inversion j.
+            - rewrite <-H in *.
+              rewrite group3Eapp. ec. instantiate (1:=h2). rewrite <-H0. ec. ea. ea.
+              instantiate (1:=G0). simpl. ea. ea. rewrite Hh2m1. tauto. se. ec.
+            - intro X. rewrite <-H2 in *.
+              rewrite <-Hh2m1 in *.
+              destruct gr.
+              + simpl gS in *. subst.
+                elim (iRotateRight g d0 g2). intros. rewrite group3Eapp.
+                ec. instantiate (1:=h). rewrite <-H2. ea. 
+                rewrite <-H2. rewrite H0. ec. se. apply X. unerase. omega.
+              + simpl gS in *. subst.
+                rewrite group3Eapp. ec. instantiate (1:=S h2). ses. ec. ea. ea.
+                eauto. instantiate (1:=G1). simpl. eauto. eauto. se. ec. intro. eauto. }
+  Grab Existential Variables.
+  { se. }
+  { unerase; omega. }
+  { se. }
+  { unerase; omega. }
+  Qed.
+
+  Definition joinge(h1 : nat){g1l g1r f1}(t1 : gaptree g1l g1r# h1 f1)(d : A)
+             (h2: nat){g2l g2r f2}(t2 : gaptree g2l g2r # h2 f2)
+             (s : Esorted (f1 ++ ^ d ++ f2))(H : h1 >= h2)
+  : joinResult #h2 #h1 (f1++^d++f2).
+  Proof.
+    generalize_eqs_vars t1.
+    induction t1 eqn:E.
+    - intros. sh.
+      assert (h2=0) by omega. subst. leaves.
+      ec. instantiate (1:=1). change (#1) with (ES #0). ec. ec. ec.
+      eauto. eauto. tauto. ea. ec. tauto.
+    - intros. clear E. clear IHg1. subst ho.
+      case (eq_nat_dec h1 h2); intros.
+      + subst.
+        ec. instantiate (1:=S h2). change (#(S h2)) with (ES #h2). ec. ea. ea. eauto. eauto. tauto. 
+        ea. ec. tauto.
+      + assert (h1>h2) by omega. clear H H1.
+        case (eq_nat_dec (S h2) h1); intros.
+        * subst. clear H2.
+          ec. instantiate (1:=S(S h2)). change (#(S(S h2))) with (ES(ES #h2)). ec. ea. ea. 
+          rewrite H0. eauto. instantiate(1:=G1). re. rewrite H0. tauto. se. ec. eauto.
+        * assert (S h2<h1) by omega. clear H H2.
+          rewrite okr in H0.
+          destruct gr eqn:E.
+          { simpl gS in *.
+            elim (unS h1 H0). intros h1m1 Hh1m1. elim (unS h1m1 Hh1m1). intros h1m2 Hh1m2.
+            eelim (IHg2 g2 eq_refl h1m2 t2 _ _ Hh1m2). intros h ? ? g j. clear IHg2.
+            simple inversion j.
+            - rewrite <-H in *.
+              rewrite ?Eapp_assoc. ec. instantiate (1:=h1). rewrite <-H0. ec. ea. ea.
+              symmetry in okr. exact okr.
+              instantiate (1:=gr). subst. simpl. re. intros. rewrite H3 in g.
+              simple inversion g. exfalso. unerase. contradict H7. apply app_cons_not_nil.
+              discriminate_erasable. se. ec.
+            - rewrite <-H2 in *.
+              rewrite ?Eapp_assoc. ec. instantiate (1:=h1). rewrite <-H0. ec. ea. ea.
+              symmetry in okr. exact okr.
+              instantiate (1:=G0). simpl. unerase. omega. eauto. se. ec. }
+          { simpl gS in *.
+            elim (unS h1 H0). intros h1m1 Hh1m1.
+            eelim (IHg2 g2 eq_refl h1m1 t2 _ _ Hh1m1). intros h ? ? g j. clear IHg2.
+            simple inversion j.
+            - rewrite <-H in *.
+              rewrite ?Eapp_assoc. ec. instantiate (1:=h1). rewrite <-H0. ec. ea. ea.
+              symmetry in okr. exact okr.
+              instantiate (1:=G0). simpl. ea. rewrite Hh1m1. tauto. se. ec.
+            - intro X. rewrite <-H2 in *.
+              rewrite <-Hh1m1 in *.
+              destruct gl.
+              + simpl gS in *. subst.
+                elim (iRotateLeft g1 d0 g). intros. rewrite ?Eapp_assoc.
+                ec. instantiate (1:=h). rewrite <-H2. ea. 
+                rewrite <-H2. rewrite H0. ec. se. apply X. unerase. omega.
+              + simpl gS in *. subst.
+                rewrite ?Eapp_assoc. ec. instantiate (1:=S h1). ses. ec. ea. ea.
+                instantiate (1:=G1). simpl. eauto. eauto. eauto. se. ec. intro. eauto. }
+  Grab Existential Variables.
+  { se. }
+  { unerase; omega. }
+  { se. }
+  { unerase; omega. }
+  Qed.
+  
+  Definition join(h1 : nat){g1l g1r f1}(t1 : gaptree g1l g1r# h1 f1)(d : A)
+             (h2: nat){g2l g2r f2}(t2 : gaptree g2l g2r # h2 f2)
+             (s : Esorted (f1 ++ ^ d ++ f2))
+  : joinResult #(min h1 h2) #(max h1 h2) (f1++^d++f2).
+  Proof.
+    case (lt_dec h1 h2); intro.
+    - assert (min h1 h2=h1) as H0.
+      { apply min_l. omega. }
+      rewrite H0.
+      assert (max h1 h2=h2) as H1.
+      { apply max_r. omega. }
+      rewrite H1.
+      eapply joinle. ea. ea. ea. omega.
+    - assert (min h1 h2=h2) as H0.
+      { apply min_r. omega. }
+      rewrite H0.
+      assert (max h1 h2=h1) as H1.
+      { apply max_l. omega. }
+      rewrite H1.
+      eapply joinge. ea. ea. ea. omega.
+  Qed.
+
+End joining.
+
+Require tctree.
+
+(* Glue logic to instantiate the Tree typeclass using gaptrees *)
+
+Inductive gaphtree(f : EL) : Type := (* gaptree with height of root *)
+Gaphtree(h : nat){gl gr}(t : gaptree gl gr #h f) : gaphtree f.
+
+Instance gaphtree_tree : tctree.Tree A := { tree := gaphtree }.
+{ ec. apply Leaf. }
+{ intros f t. destruct t. xinv t. eauto. }
+{ intros f t. destruct t. generalize_eqs t. destruct t eqn:E.
+  - ec. re.
+  - intros H. subst.
+    elim (g2h H). intros hl' <-. generalize H. rewrite okr. intro Hr. elim (g2h Hr). intros hr' <-.
+    eapply tctree.BreakNode. 3:re. ec. ea. ec. ea. }
+{ intros x f t. destruct t.
+  Call (insert x t).
+  - ec. re.
+  - intros t0 i. simple inversion i.
+    + subst h0 ho. eapply tctree.Inserted. ec. ea. re.
+    + intro. subst h0 ho. eapply tctree.Inserted. ec. ea. re. }
+{ intros fl tl d fr tr s.
+  destruct tl, tr.
+  elim (join h t d h0 t0 s). intros h1 gl1 gr1 g j.
+  ec. ea. }
+{ intros f t.
+  destruct t.
+  Call (delmin t).
+  - ec. re.
+  - intros dr.
+    xinv dr. 
+    intros t0 dr0.
+    xinv dr0.
+    + destruct t0. eapply tctree.DelminNode. ec. 2:re. ea.
+    + destruct t0. elim (unS _ H). intros ho' ->.
+      eapply tctree.DelminNode. ec. 2:re. ea. }
+{ intros f t.
+  destruct t.
+  Call (delmax t).
+  - ec. re.
+  - intros dr.
+    xinv dr. 
+    intros t0 dr0.
+    xinv dr0.
+    + destruct t0. eapply tctree.DelmaxNode. ec. 2:re. ea.
+    + destruct t0. elim (unS _ H). intros ho' ->.
+      eapply tctree.DelmaxNode. ec. 2:re. ea. }
+{ intros x f t.
+  destruct t.
+  Call (delete x t).
+  - ec. ea.
+  - intros dr.
+    xinv dr.
+    intros t0 dr0.
+    xinv dr0.
+    + destruct t0. eapply tctree.Deleted. ec. 2:re. ea.
+    + destruct t0. elim (unS _ H). intros ho' ->.
+      eapply tctree.Deleted. ec. 2:re. ea. }
+Defined.
+
+Set Printing Width 114.
+Require Import ExtrOcamlBasic.
 Extraction Inline ign2ins.
 Extraction Implicit iFitLeft [x].
 Extraction Implicit iFitRight [x].
 Extract Inductive delout => "( * )" [ "(,)" ].
-Extract Inductive sumbool => "bool" [ "true" "false" ].
-(* Extract Inductive Gap => "bool" [ "true" "false" ]. *)
-(* Extract Inductive ires => "bool" [ "true" "false" ]. *)
-(* Extract Inductive dres => "bool" [ "true" "false" ]. *)
-Extraction "gaptreeb.ml" insert delmin delmax delete.
+Extract Inlined Constant eq_nat_dec => "(=)".
+Extract Inlined Constant lt_dec => "(<)".
+Extract Inlined Constant plus => "(+)".
+
+Extraction "gaptreeb.ml" find insert delmin delmax delete join gaphtree_tree.
+
