@@ -431,6 +431,17 @@ Require Coq.Setoids.Setoid.
 
 Ltac unlift H := repeat setoid_rewrite unliftP1 in H.
 
+(* If 3410 isn't fixed soon, maybe use something like this in unerase:
+*)
+
+Ltac unlift_all_work_around_3410 :=
+  repeat match goal with 
+             H:?T|-_ =>
+             match eval lazy delta - [liftP1] in T with
+                 context[liftP1] => unlift H
+             end
+         end.
+
 (* In the remaining sections, the "proof-parts" are in {} braces - and
 should all eventually get automated - note how redundant they are. *)
 
