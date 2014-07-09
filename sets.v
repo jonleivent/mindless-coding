@@ -162,6 +162,8 @@ Section splitting.
   Hint Constructors splitResult.
   Hint Resolve join.
 
+  Hint Extern 10 => match goal with H: ?A = ?A ->_|-_=>specialize (H eq_refl) end.
+
   Definition split(x : A){f}(t : tree f) : splitResult x f.
   Proof.
     Recursive f over f t.
@@ -171,46 +173,33 @@ Section splitting.
       do 2 rewrite <-Eapp_nil_l. eapply (Split _ _ false eq_refl). all:eauto.
     - intros fl tl d fr tr ->. Esorteds.
       Compare x d.
-      + clear Recurse.
-        eapply (Split _ _ true eq_refl). all:eauto. discriminate.
+      + eapply (Split _ _ true eq_refl). all:eauto. discriminate.
       + Obtain (splitResult x fl) as [found fx f1 f2 -> efx t1 t2 s ni].
         rewrite ?Eapp_assoc.
         eapply (Split _ _ found eq_refl).
         ea. eauto. destruct found;subst;eauto.
         destruct found;subst;eauto.
         rewrite <-Eapp_assoc.
-        intros ->. specialize (ni eq_refl).
-        unerase. eapply NotInl. ea. ea. subst. eauto.
+        intros ->. subst. eauto.
       + Obtain (splitResult x fr) as [found fx f1 f2 -> efx t1 t2 s ni].
         rewrite group3Eapp.
         eapply (Split _ _ found eq_refl).
         eauto. ea. destruct found;subst;eauto. rewrite ?Eapp_assoc.
-        intros ->. specialize (ni eq_refl).
-        unerase. eapply NotInr. ea. ea. subst. eauto.
+        intros ->. subst. eauto.
     Grab Existential Variables.
     all:simpl; trivial.
   Qed.
 
 End splitting.
 
-(* A bunch of lemmas that should eventually get rolled into
-solvesorted, or something like it:*)
-
 Definition EIn(x : A) := liftP1 (In x).
 
-Lemma EInapp{a f1 f2} : EIn a (f1++f2) <-> EIn a f1 \/ EIn a f2.
-Proof.
-  split.
-  - intro.
-    unerase. clear a0.
-    apply in_app_or in H.
-    destruct H.
-    + left. unerase. ea.
-    + right. unerase. ea.
-  - intros [?|?].
-    + unerase. apply in_or_app. tauto.
-    + unerase. apply in_or_app. tauto.
-Qed.
+(* A bunch of lemmas that should eventually get rolled into
+solvesorted, or something like it - they use the lts and slt
+predicates, which really should remain local to solvesorted.  However,
+they provide a very easy way to simplify sorted/In/lt goals.  Maybe
+eventually turn solvesorted into a general rewrite-based solver over
+sorted/In/lt/logical-connectives.  *)
 
 Lemma ltsin2lt{a d f} : In a f -> lts f d -> lt a d.
 Proof.
@@ -253,64 +242,36 @@ Qed.
 
 Hint Resolve ltsin2lt sltin2lt.
 
-Lemma EInapp2{a d f1 f2} : Esorted(f1++^d++f2) ->
-                           (EIn a (f1++^d++f2) <-> (EIn a f1/\lt a d)\/
-                                                   (a=d)\/
-                                                   (EIn a f2/\lt d a)).
+Ltac genlts :=
+  repeat match goal with 
+           | I : In ?A ?F, S : slt ?B ?F |- _ => 
+             match goal with 
+               | L : lt B A |- _ => fail 1
+               | _ => generalize (sltin2lt I S); intro
+             end
+           | I : In ?A ?F, S : lts ?F ?B |- _ =>
+             match goal with
+               | L : lt A B |- _ => fail 1
+               | _ => generalize (ltsin2lt I S); intro
+             end
+         end.
+
+Ltac specall a :=
+  repeat match goal with | H : _ |- _ => specialize (H a) end.
+
+Lemma in_single{T}{a b : T} : In a [b]%list <-> a=b.
 Proof.
-  intros H.
   split.
-  - intros H0.
-    rewrite ?EInapp in H0.
-    decompose [or] H0; clear H0.
-    + left. split;[ea|]. se. 
-    + right. left. unerase. destruct H2. subst. re. contradiction.
-    + right. right. split;[ea|]. se.
-  - intros H0.
-    decompose [or] H0; clear H0.
-    + destruct H1. unerase. apply in_or_app. tauto.
-    + subst. unerase. apply in_or_app. right. apply in_or_app. left. ec. re.
-    + destruct H2. unerase. apply in_or_app. right. apply in_or_app. tauto.
+  - intro H. destruct H as [->|]; [|contradiction]. re.
+  - intros ->. ec. re.
 Qed.
 
-Lemma EInnil{a} : EIn a [] -> False.
+Lemma in_nil_rw{T}{a : T} : In a nil <-> False.
 Proof.
-  intro. unerase. contradiction.
-Qed.
-
-Hint Extern 10 => match goal with H:EIn _ [] |- _ => apply EInnil in H; contradiction end.
-
-Lemma EInapp3{a d f1 f2} : Esorted(f1++^d++f2) ->
-                           (EIn a (f1++[]++f2) <-> (EIn a f1/\lt a d)\/
-                                                   (EIn a f2/\lt d a)).
-Proof.
-  intros H.
   split.
-  - intros H0.
-    rewrite ?EInapp in H0.
-    decompose [or] H0; clear H0.
-    + left. split;[ea|]. se.
-    + eauto.
-    + right. split;[ea|]. se.
-  - intros H0.
-    decompose [or] H0; clear H0.
-    + destruct H1. unerase. apply in_or_app. tauto.
-    + destruct H1. unerase. apply in_or_app. rewrite app_nil_l. tauto.
+  - apply in_nil.
+  - contradiction.
 Qed.
-
-Lemma EInsingle{a d} : EIn a (^d) -> a=d.
-Proof.
-  intro. unerase. destruct H. subst. re. contradiction.
-Qed.
-
-Hint Extern 10 => match goal with H:EIn ?X (^_) |- _ => apply EInsingle in H; subst X end.
-
-Lemma EInself{a} : EIn a (^a).
-Proof.
-  unerase. ec. re.
-Qed.
-
-Hint Resolve EInself.
 
 Hint Extern 10 => match goal with H:lt ?X ?X |- _ => contradict H; apply irreflexivity end.
 
@@ -442,24 +403,42 @@ Ltac unlift_all_work_around_3410 :=
              match eval lazy delta - [liftP1] in T with
                  context[liftP1] => unlift H
              end
-         end.
+         end;
+  repeat setoid_rewrite unliftP1.
 
-(* In the remaining sections, the "proof-parts" are in {} braces - and
-should all eventually get automated - note how redundant they are. *)
+(* Some automation for solving goals featuring formulas of In's *)
 
-Ltac sins1 := match goal with
+Ltac rewrite_ins :=
+  repeat setoid_rewrite in_app_iff;
+  repeat setoid_rewrite in_single;
+  repeat setoid_rewrite in_nil_rw.
+
+Ltac siors := match goal with
                | |- lts _ _ => eapply ltsinlts
                | |- slt _ _ => eapply sltinslt
              end;
              [ |intros ? I;unlift_all_work_around_3410;
                  match goal with H:_|-_ => eapply H in I; intuition eauto end| ];ea.
 
-Ltac sins2 := match goal with
+Ltac siands := match goal with
                | |- lts _ _ => eapply lts2inlts
                | |- slt _ _ => eapply slt2inslt
              end;
             [ | |intros ? I; unlift_all_work_around_3410;
                  match goal with H:_|-_ => eapply H;[exact I|..] end|..];ea.
+
+Ltac si := 
+  try unerase;
+  unlift_all_work_around_3410;
+  rewrite_ins;
+  solve_sorted;
+  genlts;
+  intuition (subst;auto);
+  congruence.
+
+Ltac debool := repeat match goal with H:bool |- _ => destruct H;subst end.
+
+Ltac sia := let a:=fresh in intro a; specall a; debool; si.
 
 Section union.
 
@@ -473,18 +452,13 @@ Section union.
     Recursive (f1++f2).
     Esorteds.
     case (break t1).
-    - intros ->. ec. exact t2.
-      { intuition auto. }
+    - intros ->. ec. exact t2. si.
     - intros fl tl d fr tr ->.
       case (split d t2). intros found fx f2l f2r -> efx t2l t2r s ni.
       Obtain (unionResult fl f2l) as [f t u].
       Obtain (unionResult fr f2r) as [f0 t0 u0].
-      assert (Esorted(f++^d++f0)) by (Esorteds; se; sins2).
-      ec. eapply (join t d t0).
-      { intros a. clear - u u0 efx.
-        rewrite ?EInapp.
-        rewrite ?u. rewrite ?u0.
-        destruct found; subst; clear; intuition auto. }
+      assert (Esorted(f++^d++f0)) by (Esorteds; se; siands).
+      ec. eapply (join t d t0). sia.
   Grab Existential Variables.
       all:eauto.
   Qed.
@@ -556,30 +530,15 @@ Section intersection.
     Recursive (f1++f2).
     Esorteds.
     case (break t1).
-    - intros ->. ec. apply leaf.
-      { intuition auto. }
+    - intros ->. ec. apply leaf. si.
     - intros fl tl d fr tr ->.
       case (split d t2). intros found fx f2l f2r -> efx t2l t2r s ni.
       Obtain (intersectResult fl f2l) as [f t u].
-      Obtain (intersectResult fr f2r) as [f0 t0 u0]. clear Recurse.
-      assert(Esorted (f++^d++f0)) by (Esorteds; se; sins1).
+      Obtain (intersectResult fr f2r) as [f0 t0 u0].
+      assert(Esorted (f++^d++f0)) by (Esorteds; se; siors).
       destruct found.
-      + subst fx. ec. eapply (join t d t0).
-        { intros a. clear - u u0 st1 st2 s.
-          rewrite 2 EInapp.
-          rewrite ?EInapp2; [|ea..].
-          rewrite ?u. rewrite ?u0.
-          intuition eauto. all:subst.
-          all:try solve [repeat (left + right); repeat split; try ea; se].
-          eauto. }
-      + subst fx. ec. eapply (merge t t0).
-        { intros a. clear - u u0 st1 st2 s.
-          rewrite EInapp.
-          rewrite ?EInapp2; [|ea..].
-          rewrite (@EInapp3 _ d); [|ea..].
-          rewrite ?u. rewrite ?u0.
-          intuition eauto. all:subst.
-          all:try solve [repeat (left + right); repeat split; try ea; se]. }
+      + subst fx. ec. eapply (join t d t0). sia.
+      + subst fx. ec. eapply (merge t t0). sia.
   Grab Existential Variables.
         all:eauto.
   Qed.
@@ -598,34 +557,15 @@ Section setdifference.
     Recursive (f1++f2).
     Esorteds.
     case (break t1).
-    - intros ->. ec. apply leaf.
-      { intuition auto. }
+    - intros ->. ec. apply leaf. si.
     - intros fl tl d fr tr ->.
       case (split d t2). intros found fx f2l f2r -> efx t2l t2r s ni.
       Obtain (setdiffResult fl f2l) as [f t u].
-      Obtain (setdiffResult fr f2r) as [f0 t0 u0]. clear Recurse.
-      assert(Esorted (f++^d++f0)) by (Esorteds; se; sins1).
+      Obtain (setdiffResult fr f2r) as [f0 t0 u0].
+      assert(Esorted (f++^d++f0)) by (Esorteds; se; siors).
       destruct found.
-      + subst fx. ec. eapply (merge t t0).
-        { intros a. clear - u u0 st1 st2 s.
-          rewrite ?EInapp2; [|ea..].
-          rewrite EInapp.
-          rewrite ?u. rewrite ?u0.
-          intuition eauto. all:subst. 
-          all:try solve [repeat (left + right); repeat split; try ea; se].
-          se. assert (lts fl a) by (solve_sorted). eauto.
-          se. assert (slt a fr) by (solve_sorted). eauto. }
-      + subst fx. ec. eapply (join t d t0).
-        { intros a. clear - u u0 st1 st2 s.
-          do 2 rewrite EInapp.
-          rewrite ?EInapp2; [|ea..].
-          rewrite (EInapp3 s).
-          rewrite ?u. rewrite ?u0.
-          intuition eauto. all:subst.
-          all:try solve [repeat (left + right); repeat split; try ea; se].
-          se. assert (lts fl a) by (solve_sorted). eauto.
-          se. assert (slt a fr) by (solve_sorted). eauto.
-          eauto. }
+      + subst fx. ec. eapply (merge t t0). sia.
+      + subst fx. ec. eapply (join t d t0). sia.
   Grab Existential Variables.
         all:eauto.
   Qed.
@@ -644,31 +584,14 @@ Section filtering.
     Recursive f over f t.
     Esorteds.
     case (break t).
-    - intros ->. ec. apply leaf.
-      { intuition auto. }
+    - intros ->. ec. apply leaf. si.
     - intros fl tl d fr tr ->.
       Obtain (filterResult filt fl) as [flo tlo ulo].
       Obtain (filterResult filt fr) as [fro tro uro].
-      assert (Esorted (flo++^d++fro)) by (Esorteds; se; sins1).
+      assert (Esorted (flo++^d++fro)) by (Esorteds; se; siors).
       case_eq (filt d).
-      + intro FT.
-        ec. eapply (join tlo d tro).
-        { intros a. Esorteds. clear - stl str stlo stro FT uro ulo st.
-          do 2 rewrite EInapp.
-          rewrite ?EInapp2; [|ea..].
-          rewrite ?ulo. rewrite ?uro.
-          intuition eauto. all:subst.
-          all:try solve [repeat (left + right); repeat split; try ea; se].
-          eauto. }
-      + intro FF.
-        ec. eapply (merge tlo tro).
-        { intros a. Esorteds. clear - stl str stlo stro FF uro ulo st.
-          rewrite EInapp.
-          rewrite ?EInapp2; [|ea..].
-          rewrite ?ulo. rewrite ?uro.
-          intuition eauto. all:subst.
-          all:try solve [repeat (left + right); repeat split; try ea; se].
-          rewrite FF in *. discriminate. }
+      + intro FT. ec. eapply (join tlo d tro). sia.
+      + intro FF. ec. eapply (merge tlo tro). sia.
   Grab Existential Variables.
         all:eauto.
   Qed.
@@ -688,46 +611,15 @@ Section partitioning.
     Recursive f over f t.
     Esorteds.
     case (break t).
-    - intros ->. ec. apply leaf. apply leaf.
-      all:intuition auto.
+    - intros ->. ec. apply leaf. apply leaf. all:si.
     - intros fl tl d fr tr ->.
       Obtain (partitionResult filt fl) as [fl1 tl1 fl0 tl0 ul1 ul0].
       Obtain (partitionResult filt fr) as [fr1 tr1 fr0 tr0 ur1 ur0].
-      assert (Esorted(fl1++^d++fr1)) by (Esorteds; se; sins1).
-      assert (Esorted(fl0++^d++fr0)) by (Esorteds; se; sins1).
+      assert (Esorted(fl1++^d++fr1)) by (Esorteds; se; siors).
+      assert (Esorted(fl0++^d++fr0)) by (Esorteds; se; siors).
       case_eq (filt d).
-      + intro FT.
-        ec. eapply (join tl1 d tr1). eapply (merge tl0 tr0).
-        { intros a. Esorteds. clear Recurse.
-          do 2 rewrite EInapp.
-          rewrite ?EInapp2; [|ea..].
-          rewrite ?ul1. rewrite ?ur1.
-          intuition eauto. all:subst.
-          all:try solve [repeat (left + right); repeat split; try ea; se].
-          eauto. }
-        { intros a. Esorteds. clear Recurse.
-          rewrite EInapp.
-          rewrite ?EInapp2; [|ea..].
-          rewrite ?ul0. rewrite ?ur0.
-          intuition eauto. all:subst.
-          all:try solve [repeat (left + right); repeat split; try ea; se].
-          rewrite FT in *. discriminate. }
-      + intro FF.
-        ec. eapply (merge tl1 tr1). eapply (join tl0 d tr0).
-        { intros a. Esorteds. clear Recurse.
-          rewrite EInapp.
-          rewrite ?EInapp2; [|ea..].
-          rewrite ?ul1. rewrite ?ur1.
-          intuition eauto. all:subst.
-          all:try solve [repeat (left + right); repeat split; try ea; se].
-          rewrite FF in *. discriminate. }
-        { intros a. Esorteds. clear Recurse.
-          do 2 rewrite EInapp.
-          rewrite ?EInapp2; [|ea..].
-          rewrite ?ul0. rewrite ?ur0.
-          intuition eauto. all:subst.
-          all:try solve [repeat (left + right); repeat split; try ea; se].
-          eauto. }
+      + intro FT. ec. eapply (join tl1 d tr1). eapply (merge tl0 tr0). all:sia.
+      + intro FF. ec. eapply (merge tl1 tr1). eapply (join tl0 d tr0). all:sia.
   Grab Existential Variables.
         all:eauto.
 Qed.
