@@ -177,7 +177,7 @@ Section splitting.
       + Obtain (splitResult x fl) as [found fx f1 f2 -> efx t1 t2 s ni].
         rewrite ?Eapp_assoc.
         eapply (Split _ _ found eq_refl).
-        ea. eauto. destruct found;subst;eauto.
+        ea. destruct found;subst;eauto.
         destruct found;subst;eauto.
         rewrite <-Eapp_assoc.
         intros ->. subst. eauto.
