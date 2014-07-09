@@ -111,3 +111,11 @@ type partitionResult =
 
 val partition : (a -> bool) -> a tree0 -> partitionResult
 
+type subsetResult =
+| IsSubset of bool
+| NotSubset of a
+
+val subset : a tree0 -> a tree0 -> subsetResult
+
+val equiv : a tree0 -> a tree0 -> bool
+

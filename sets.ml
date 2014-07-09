@@ -228,3 +228,38 @@ let partition filt t =
       then Partitioned ((join ordA treeA tl1 d tr1), (merge tl0 tr0))
       else Partitioned ((merge tl1 tr1), (join ordA treeA tl0 d tr0))) __ t __
 
+type subsetResult =
+| IsSubset of bool
+| NotSubset of a
+
+(** val subset : a tree0 -> a tree0 -> subsetResult **)
+
+let subset t1 t2 =
+  enat_xrect (fun _ recurse _ _ _ t3 t4 ->
+    match break ordA treeA t3 with
+    | BreakLeaf ->
+      IsSubset
+        (match break ordA treeA t4 with
+         | BreakLeaf -> false
+         | BreakNode (tl, d, tr) -> true)
+    | BreakNode (tl, d, tr) ->
+      let Split (found, x, x0) = split d t4 in
+      if found
+      then let rl = recurse __ __ __ __ __ tl x in
+           (match rl with
+            | IsSubset isProperl ->
+              let rr = recurse __ __ __ __ __ tr x0 in
+              (match rr with
+               | IsSubset isProperr ->
+                 IsSubset (if isProperl then true else isProperr)
+               | NotSubset a0 -> NotSubset a0)
+            | NotSubset a0 -> NotSubset a0)
+      else NotSubset d) __ __ __ t1 t2
+
+(** val equiv : a tree0 -> a tree0 -> bool **)
+
+let equiv t1 t2 =
+  match subset t1 t2 with
+  | IsSubset isProper -> if isProper then false else true
+  | NotSubset a0 -> false
+

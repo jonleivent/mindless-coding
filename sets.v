@@ -411,7 +411,13 @@ Ltac unlift_all_work_around_3410 :=
 Ltac rewrite_ins :=
   repeat setoid_rewrite in_app_iff;
   repeat setoid_rewrite in_single;
-  repeat setoid_rewrite in_nil_rw.
+  repeat setoid_rewrite in_nil_rw;
+  repeat match goal with
+             H : context[In] |- _ => 
+             first [setoid_rewrite in_app_iff in H
+                   |setoid_rewrite in_single in H
+                   |setoid_rewrite in_nil_rw in H]
+         end.
 
 Ltac siands := match goal with
                | |- lts _ _ => eapply ltsinlts
@@ -434,7 +440,7 @@ Ltac si :=
   solve_sorted;
   genlts;
   intuition (subst;auto);
-  congruence.
+  try congruence; try contradiction.
 
 Ltac debool := repeat match goal with H:bool |- _ => destruct H;subst end.
 
@@ -626,6 +632,107 @@ Qed.
 
 End partitioning.
 
+Section subset.
+
+  
+  Inductive subsetResult(f1 f2 : EL) : Type :=
+  | IsSubset(ss: forall a, EIn a f1 -> EIn a f2) 
+            (isProper : {exists a, EIn a f2 /\ ~EIn a f1}+{forall a, EIn a f2 -> EIn a f1})
+    : subsetResult f1 f2
+  | NotSubset(a : A)(in1 : EIn a f1)(nin2 : ~EIn a f2) : subsetResult f1 f2.
+
+  Definition subset{f1}(t1 : tree f1){f2}(t2 : tree f2) : subsetResult f1 f2.
+  Proof.
+    Recursive (f1++f2).
+    Esorteds.
+    case (break t1).
+    - intros ->. eapply IsSubset. intros a H. si.
+      case (break t2).
+      + intros ->. right. si.
+      + intros fl tl d fr tr ->. left. si.
+    - intros fl tl d fr tr ->.
+      case (split d t2). intros found fx f2l f2r -> efx t2l t2r s ni.
+      destruct found.
+      + subst.
+        Obtain (subsetResult fl f2l) as rl.
+        case rl.
+        * intros ssl isProperl.
+          Obtain (subsetResult fr f2r) as rr.
+          case rr.
+          { intros ssr isProperr. eapply IsSubset. clear isProperr isProperl. sia.
+            destruct isProperl, isProperr.
+            - left. destruct H as [a e]. exists a. si.
+            - left. destruct H as [a e]. exists a. si.
+            - left. destruct H0 as [a e]. exists a. si.
+            - right. sia. }
+          { intros a in1 nin2. clear isProperl. eapply (NotSubset _ _ a). all:specall a. all:si. }
+        * intros a in1 nin2. eapply (NotSubset _ _ a). all:specall a. all:si.
+      + eapply (NotSubset _ _ d). all:si.
+  Qed.
+
+End subset.
+
+Section equivalence.
+
+  Ltac appify H := match type of H with
+                       context [?a::?X] => change (a::X)%list with ([a]++X)%list in H end.
+
+  Lemma sorted_in_head{x y f1 f2} : (forall a : A, In a (x::f1) -> In a (y::f2)) ->
+                                    (forall a : A, In a (y::f2) -> In a (x::f1)) ->
+                                    sorted (x::f1) -> sorted (y::f2) ->
+                                    x=y.
+  Proof.
+    intros H H0 H1 H2.
+    elim (H x). auto. 2:ec;re.
+    intros H3.
+    elim (H0 y). auto. 2:ec;re.
+    intros H4.
+    appify H1. appify H2. si.
+  Qed.
+
+  Lemma sorted_in_ext{f1 f2} : (forall a : A, In a f1 -> In a f2) ->
+                               (forall a : A, In a f2 -> In a f1) ->
+                               sorted f1 -> sorted f2 ->
+                               f1=f2.
+  Proof.
+    intros H H0 H1 H2.
+    Recursive (#f1++#f2).
+    destruct f1, f2.
+    - re.
+    - exfalso. setoid_rewrite in_nil_rw in H0. eapply H0. ec. re.
+    - exfalso. setoid_rewrite in_nil_rw in H. eapply H. ec. re.
+    - f_equal. eapply sorted_in_head; ea.
+      appify H1. appify H2.
+      obtain; clear Recurse. 3:eapply sortedr;ea. 3:eapply sortedr;ea.
+      + assert (a=a0) by (eapply sorted_in_head; ea). subst.
+        intros a1 H3.
+        case (eq_dec a0 a1).
+        * intros ->. exfalso. si.
+        * intros H4.
+          elim (H a1). congruence. tauto. simpl. tauto.
+      + assert (a=a0) by (eapply sorted_in_head; ea). subst.
+        intros a1 H3.
+        case (eq_dec a0 a1).
+        * intros ->. exfalso. si.
+        * intros H4.
+          elim (H0 a1). congruence. tauto. simpl. tauto.
+  Qed.
+    
+
+  Definition equiv{f1}(t1 : tree f1){f2}(t2 : tree f2) : {f1=f2}+{~f1=f2}.
+  Proof.
+    case (subset t1 t2).
+    - intros ss isProper.
+      destruct isProper.
+      + right. destruct H as [a e]. si.
+      + left. Esorteds. unerase. unlift_all_work_around_3410. clear t1 t2 a.
+        eapply sorted_in_ext; ea.
+    - intros a in1 nin2.
+      right. si.
+  Qed.
+
+End equivalence.
+
 Set Printing Width 80.
 Require Import ExtrOcamlBasic.
 Extract Inlined Constant eq_nat_dec => "(=)".
@@ -637,4 +744,5 @@ functions if enat_xrect is inlined - so turn off its inlining to make
 the code more readable: *)
 Extraction NoInline enat_xrect.
 
-Extraction "sets.ml" find delete_free_delmin union intersection setdifference filter partition.
+Extraction "sets.ml"
+           find delete_free_delmin union intersection setdifference filter partition subset equiv.
