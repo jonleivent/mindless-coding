@@ -457,7 +457,7 @@ Section union.
       case (split d t2). intros found fx f2l f2r -> efx t2l t2r s ni.
       Obtain (unionResult fl f2l) as [f t u].
       Obtain (unionResult fr f2r) as [f0 t0 u0].
-      assert (Esorted(f++^d++f0)) by (Esorteds; se; siands).
+      assert (Esorted(f++^d++f0)) by (se; siands).
       ec. eapply (join t d t0). sia.
   Grab Existential Variables.
       all:eauto.
@@ -535,7 +535,7 @@ Section intersection.
       case (split d t2). intros found fx f2l f2r -> efx t2l t2r s ni.
       Obtain (intersectResult fl f2l) as [f t u].
       Obtain (intersectResult fr f2r) as [f0 t0 u0].
-      assert(Esorted (f++^d++f0)) by (Esorteds; se; siors).
+      assert(Esorted (f++^d++f0)) by (se; siors).
       destruct found.
       + subst fx. ec. eapply (join t d t0). sia.
       + subst fx. ec. eapply (merge t t0). sia.
@@ -562,7 +562,7 @@ Section setdifference.
       case (split d t2). intros found fx f2l f2r -> efx t2l t2r s ni.
       Obtain (setdiffResult fl f2l) as [f t u].
       Obtain (setdiffResult fr f2r) as [f0 t0 u0].
-      assert(Esorted (f++^d++f0)) by (Esorteds; se; siors).
+      assert(Esorted (f++^d++f0)) by (se; siors).
       destruct found.
       + subst fx. ec. eapply (merge t t0). sia.
       + subst fx. ec. eapply (join t d t0). sia.
@@ -588,7 +588,7 @@ Section filtering.
     - intros fl tl d fr tr ->.
       Obtain (filterResult filt fl) as [flo tlo ulo].
       Obtain (filterResult filt fr) as [fro tro uro].
-      assert (Esorted (flo++^d++fro)) by (Esorteds; se; siors).
+      assert (Esorted (flo++^d++fro)) by (se; siors).
       case_eq (filt d).
       + intro FT. ec. eapply (join tlo d tro). sia.
       + intro FF. ec. eapply (merge tlo tro). sia.
@@ -615,8 +615,8 @@ Section partitioning.
     - intros fl tl d fr tr ->.
       Obtain (partitionResult filt fl) as [fl1 tl1 fl0 tl0 ul1 ul0].
       Obtain (partitionResult filt fr) as [fr1 tr1 fr0 tr0 ur1 ur0].
-      assert (Esorted(fl1++^d++fr1)) by (Esorteds; se; siors).
-      assert (Esorted(fl0++^d++fr0)) by (Esorteds; se; siors).
+      assert (Esorted(fl1++^d++fr1)) by (se; siors).
+      assert (Esorted(fl0++^d++fr0)) by (se; siors).
       case_eq (filt d).
       + intro FT. ec. eapply (join tl1 d tr1). eapply (merge tl0 tr0). all:sia.
       + intro FF. ec. eapply (merge tl1 tr1). eapply (join tl0 d tr0). all:sia.
