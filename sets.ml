@@ -292,9 +292,9 @@ let fold_left foldf t b =
 type 'b fold_right_result = 'b
 
 (** val fold_right :
-    'a1 -> (a -> 'a1 -> 'a1) -> a tree0 -> 'a1 fold_right_result **)
+    (a -> 'a1 -> 'a1) -> 'a1 -> a tree0 -> 'a1 fold_right_result **)
 
-let fold_right b foldf t =
+let fold_right foldf b t =
   enat_xrect (fun _ recurse _ t0 b0 _ ->
     match break ordA treeA t0 with
     | BreakLeaf -> b0
@@ -305,12 +305,12 @@ let fold_right b foldf t =
 (** val cardinality : a tree0 -> nat **)
 
 let cardinality t =
-  fold_right O (fun x n -> S n) t
+  fold_right (fun x n -> S n) O t
 
 (** val map : (a -> 'a1) -> a tree0 -> 'a1 list **)
 
 let map mapf t =
-  fold_right [] (fun a0 bs -> (mapf a0) :: bs) t
+  fold_right (fun a0 bs -> (mapf a0) :: bs) [] t
 
 (** val flatten : a tree0 -> a list **)
 

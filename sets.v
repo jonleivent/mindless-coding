@@ -718,6 +718,7 @@ Section equivalence.
           elim (H0 a1). congruence. tauto. simpl. tauto.
   Qed.
     
+  Hint Resolve sorted_in_ext.
 
   Definition equiv{f1}(t1 : tree f1){f2}(t2 : tree f2) : {f1=f2}+{~f1=f2}.
   Proof.
@@ -725,41 +726,42 @@ Section equivalence.
     - intros ss isProper.
       destruct isProper.
       + right. destruct H as [a e]. si.
-      + left. Esorteds. unerase. unlift_all_work_around_3410. clear t1 t2 a.
-        eapply sorted_in_ext; ea.
-    - intros a in1 nin2.
-      right. si.
+      + left. Esorteds. si.
+    - intros a in1 nin2. right. si.
   Qed.
 
 End equivalence.
 
+(*Let-style notation to unerase a binding:*)
+Notation "[ x #= y | P ]" := (sig (fun _ZZ => (ex (fun x => #x=y /\ _ZZ=P)))) (at level 0).
+
 Section folding.
 
   Definition fold_left_result{B}(foldf : B -> A -> B)(f : EL)(b : B) :=
-    {x : B | #x = (lift1 (fun f => List.fold_left foldf f b)) f}.
+    [l#=f | List.fold_left foldf l b].
 
   Definition fold_left{B}(foldf : B -> A -> B){f}(t : tree f)(b : B) : fold_left_result foldf f b.
   Proof.
     Recursive f over f t b.
     case (break t).
-    - intros ->. compute. eexists. re.
+    - intros ->. eexists. unerase. simpl. re.
     - intros fl tl d fr tr ->.
       Obtain (fold_left_result foldf fl b) as [xl el].
       Obtain (fold_left_result foldf fr (foldf xl d)) as [xr er].
       exists xr. unerase. rewrite ?fold_left_app. subst. f_equal.
   Qed.
 
-  Definition fold_right_result{B}(b : B)(foldf : A -> B -> B)(f : EL) :=
-    {x : B | #x = (lift1 (List.fold_right foldf b)) f}.
+  Definition fold_right_result{B}(foldf : A -> B -> B)(b : B)(f : EL) :=
+    [l#=f | List.fold_right foldf b l].
 
-  Definition fold_right{B}(b : B)(foldf : A -> B -> B){f}(t : tree f) : fold_right_result b foldf f.
+  Definition fold_right{B}(foldf : A -> B -> B)(b : B){f}(t : tree f) : fold_right_result foldf b f.
   Proof.
     Recursive f over f t b.
     case (break t).
-    - intros ->. compute. eexists. re.
+    - intros ->. eexists. unerase. simpl. re.
     - intros fl tl d fr tr ->.
-      Obtain (fold_right_result b foldf fr) as [xr er].
-      Obtain (fold_right_result (foldf d xr) foldf fl) as [xl el].
+      Obtain (fold_right_result foldf b fr) as [xr er].
+      Obtain (fold_right_result foldf (foldf d xr) fl) as [xl el].
       exists xl. unerase. rewrite ?fold_right_app. subst. f_equal.
   Qed.
 
@@ -770,32 +772,24 @@ Section cardinality.
   (*a tree could easily store its own cardinality internally - so this
   function should just be a default for the tree typeclass.*)
 
-  Definition cardinality{f}(t : tree f) : { card : nat | #card = Elength f}.
-  Proof.
-    apply (fold_right 0 (fun _ n => S n) t).
-  Qed.
+  Definition cardinality{f}(t : tree f) : [l#=f | length l] :=
+    fold_right (fun _ n => S n) 0 t.
 
 End cardinality.
 
 Section mapping.
 
-  Definition map{B}(mapf : A -> B){f}(t : tree f)
-  : { m : list B | #m = (lift1 (List.map mapf)) f }.
-  Proof.
-    apply (fold_right nil (fun a bs => (mapf a)::bs) t).
-  Qed.
+  Definition map{B}(mapf : A -> B){f}(t : tree f) : [l#=f | List.map mapf l] :=
+    fold_right (fun a bs => (mapf a)::bs) nil t.
 
 End mapping.
 
 Section flatten.
 
-  Definition flatten{f}(t : tree f) : { l : list A | #l=f }.
+  Definition flatten{f}(t : tree f) : [l#=f | l].
   Proof.
     elim (map id t).
-    intros x p. exists x. unerase. subst. clear.
-    induction f.
-    - re.
-    - simpl. f_equal. ea.
+    intros x p. setoid_rewrite map_id in p. eexists. ea.
   Qed.
 
 End flatten.

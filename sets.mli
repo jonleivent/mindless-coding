@@ -135,7 +135,7 @@ val fold_left : ('a1 -> a -> 'a1) -> a tree0 -> 'a1 -> 'a1 fold_left_result
 
 type 'b fold_right_result = 'b
 
-val fold_right : 'a1 -> (a -> 'a1 -> 'a1) -> a tree0 -> 'a1 fold_right_result
+val fold_right : (a -> 'a1 -> 'a1) -> 'a1 -> a tree0 -> 'a1 fold_right_result
 
 val cardinality : a tree0 -> nat
 
