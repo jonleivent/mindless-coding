@@ -733,6 +733,73 @@ Section equivalence.
 
 End equivalence.
 
+Section folding.
+
+  Definition fold_left_result{B}(foldf : B -> A -> B)(f : EL)(b : B) :=
+    {x : B | #x = (lift1 (fun f => List.fold_left foldf f b)) f}.
+
+  Definition fold_left{B}(foldf : B -> A -> B){f}(t : tree f)(b : B) : fold_left_result foldf f b.
+  Proof.
+    Recursive f over f t b.
+    case (break t).
+    - intros ->. compute. eexists. re.
+    - intros fl tl d fr tr ->.
+      Obtain (fold_left_result foldf fl b) as [xl el].
+      Obtain (fold_left_result foldf fr (foldf xl d)) as [xr er].
+      exists xr. unerase. rewrite ?fold_left_app. subst. f_equal.
+  Qed.
+
+  Definition fold_right_result{B}(b : B)(foldf : A -> B -> B)(f : EL) :=
+    {x : B | #x = (lift1 (List.fold_right foldf b)) f}.
+
+  Definition fold_right{B}(b : B)(foldf : A -> B -> B){f}(t : tree f) : fold_right_result b foldf f.
+  Proof.
+    Recursive f over f t b.
+    case (break t).
+    - intros ->. compute. eexists. re.
+    - intros fl tl d fr tr ->.
+      Obtain (fold_right_result b foldf fr) as [xr er].
+      Obtain (fold_right_result (foldf d xr) foldf fl) as [xl el].
+      exists xl. unerase. rewrite ?fold_right_app. subst. f_equal.
+  Qed.
+
+End folding.
+
+Section cardinality.
+
+  (*a tree could easily store its own cardinality internally - so this
+  function should just be a default for the tree typeclass.*)
+
+  Definition cardinality{f}(t : tree f) : { card : nat | #card = Elength f}.
+  Proof.
+    apply (fold_right 0 (fun _ n => S n) t).
+  Qed.
+
+End cardinality.
+
+Section mapping.
+
+  Definition map{B}(mapf : A -> B){f}(t : tree f)
+  : { m : list B | #m = (lift1 (List.map mapf)) f }.
+  Proof.
+    apply (fold_right nil (fun a bs => (mapf a)::bs) t).
+  Qed.
+
+End mapping.
+
+Section flatten.
+
+  Definition flatten{f}(t : tree f) : { l : list A | #l=f }.
+  Proof.
+    elim (map id t).
+    intros x p. exists x. unerase. subst. clear.
+    induction f.
+    - re.
+    - simpl. f_equal. ea.
+  Qed.
+
+End flatten.
+
 Set Printing Width 80.
 Require Import ExtrOcamlBasic.
 Extract Inlined Constant eq_nat_dec => "(=)".
@@ -743,6 +810,9 @@ Extract Inlined Constant plus => "(+)".
 functions if enat_xrect is inlined - so turn off its inlining to make
 the code more readable: *)
 Extraction NoInline enat_xrect.
+Extraction Inline fold_right_result.
+Extraction Inline fold_left_result.
 
 Extraction "sets.ml"
-           find delete_free_delmin union intersection setdifference filter partition subset equiv.
+           find delete_free_delmin union intersection setdifference filter partition
+           subset equiv fold_left fold_right cardinality map flatten.

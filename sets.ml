@@ -1,6 +1,10 @@
 type __ = Obj.t
 let __ = let rec f _ = Obj.repr f in Obj.repr f
 
+type nat =
+| O
+| S of nat
+
 type comparison =
 | Eq
 | Lt
@@ -10,6 +14,15 @@ type compareSpecT =
 | CompEqT
 | CompLtT
 | CompGtT
+
+(** val id : 'a1 -> 'a1 **)
+
+let id x =
+  x
+
+type 'a sig0 =
+  'a
+  (* singleton inductive, whose constructor was exist *)
 
 type 'a eqDec = 'a -> 'a -> bool
 
@@ -262,4 +275,45 @@ let equiv t1 t2 =
   match subset t1 t2 with
   | IsSubset isProper -> if isProper then false else true
   | NotSubset a0 -> false
+
+type 'b fold_left_result = 'b
+
+(** val fold_left :
+    ('a1 -> a -> 'a1) -> a tree0 -> 'a1 -> 'a1 fold_left_result **)
+
+let fold_left foldf t b =
+  enat_xrect (fun _ recurse _ t0 b0 _ ->
+    match break ordA treeA t0 with
+    | BreakLeaf -> b0
+    | BreakNode (tl, d, tr) ->
+      let x = recurse __ __ __ tl b0 __ in recurse __ __ __ tr (foldf x d) __)
+    __ t b __
+
+type 'b fold_right_result = 'b
+
+(** val fold_right :
+    'a1 -> (a -> 'a1 -> 'a1) -> a tree0 -> 'a1 fold_right_result **)
+
+let fold_right b foldf t =
+  enat_xrect (fun _ recurse _ t0 b0 _ ->
+    match break ordA treeA t0 with
+    | BreakLeaf -> b0
+    | BreakNode (tl, d, tr) ->
+      let x = recurse __ __ __ tr b0 __ in recurse __ __ __ tl (foldf d x) __)
+    __ t b __
+
+(** val cardinality : a tree0 -> nat **)
+
+let cardinality t =
+  fold_right O (fun x n -> S n) t
+
+(** val map : (a -> 'a1) -> a tree0 -> 'a1 list **)
+
+let map mapf t =
+  fold_right [] (fun a0 bs -> (mapf a0) :: bs) t
+
+(** val flatten : a tree0 -> a list **)
+
+let flatten t =
+  map id t
 

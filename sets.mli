@@ -2,6 +2,10 @@
 
 type __ = Obj.t
 
+type nat =
+| O
+| S of nat
+
 type comparison =
 | Eq
 | Lt
@@ -11,6 +15,12 @@ type compareSpecT =
 | CompEqT
 | CompLtT
 | CompGtT
+
+val id : 'a1 -> 'a1
+
+type 'a sig0 =
+  'a
+  (* singleton inductive, whose constructor was exist *)
 
 type 'a eqDec = 'a -> 'a -> bool
 
@@ -118,4 +128,18 @@ type subsetResult =
 val subset : a tree0 -> a tree0 -> subsetResult
 
 val equiv : a tree0 -> a tree0 -> bool
+
+type 'b fold_left_result = 'b
+
+val fold_left : ('a1 -> a -> 'a1) -> a tree0 -> 'a1 -> 'a1 fold_left_result
+
+type 'b fold_right_result = 'b
+
+val fold_right : 'a1 -> (a -> 'a1 -> 'a1) -> a tree0 -> 'a1 fold_right_result
+
+val cardinality : a tree0 -> nat
+
+val map : (a -> 'a1) -> a tree0 -> 'a1 list
+
+val flatten : a tree0 -> a list
 
