@@ -131,6 +131,12 @@ Ltac se := solve_esorted.
 
 Hint Extern 20 (Esorted _) => solve_esorted.
 
+Ltac appify H := match type of H with
+                     context [?a::?X] => change (a::X)%list with ([a]++X)%list in H end.
+
+Ltac appify_goal := match goal with 
+                        |- context [?a::?X] => change (a::X)%list with ([a]++X)%list end.
+
 Section finding.
 
   (* It is possible to define find for generic trees: *)
@@ -215,21 +221,19 @@ they provide a very easy way to simplify sorted/In/lt goals.  Maybe
 eventually turn solvesorted into a general rewrite-based solver over
 sorted/In/lt/logical-connectives.  *)
 
+Transparent List.app.
+
 Lemma ltsin2lt{a d f} : In a f -> lts f d -> lt a d.
 Proof.
   revert a d.
   induction f.
   - intros. contradiction.
   - intros a0 d H H0.
-    simple inversion H0; subst.
-    + inversion H1.
-    + inversion H2. subst.
-      destruct H.
+    inversion H0; subst.
+    + destruct H.
       * subst. tauto.
       * contradiction.
-    + intros H1 H2 H3.
-      change ([a1]++l)%list with (a1::l) in H4. inversion H4. subst.
-      destruct H.
+    + destruct H.
       * subst. ea.
       * apply IHf. ea. ea.
 Qed.
@@ -240,15 +244,11 @@ Proof.
   induction f.
   - intros. contradiction.
   - intros a0 d H H0.
-    simple inversion H0; subst.
-    + inversion H2.
-    + inversion H3. subst.
-      destruct H.
+    inversion H0; subst.
+    + destruct H.
       * subst. tauto.
       * contradiction.
-    + intros H1 H2 H3.
-      change ([b]++l)%list with (b::l) in H5. inversion H5. subst.
-      destruct H.
+    + destruct H.
       * subst. ea.
       * apply IHf. ea. 
         eapply slt_trans. ea. ea.
@@ -299,16 +299,11 @@ Proof.
   induction f.
   - intros. contradiction.
   - intros a0 H H0.
-    simple inversion H0.
-    + inversion H1.
-    + injection H2. intros. subst.
-      destruct H. subst. eauto. eauto.
-    + intros H1 H2 H3. subst.
-      destruct H.
-      * change ([a1]++l)%list with (a1::l) in H4. injection H4. intros. subst.
-        eauto.
-      * change ([a1]++l)%list with (a1::l) in H4. injection H4. intros. subst.
-        specialize (IHf a0 H H2). contradiction.
+    inversion H0; subst.
+    + destruct H. subst. eauto. eauto.
+    + destruct H.
+      * subst. eauto.
+      * eauto.
 Qed.
 
 Lemma sltin{a f} : In a f -> slt a f -> False.
@@ -317,13 +312,9 @@ Proof.
   induction f.
   - intros. contradiction.
   - intros a0 H H0.
-    simple inversion H0.
-    + inversion H2.
-    + injection H3. intros. subst.
-      destruct H. subst. eauto. eauto.
-    + intros H1 H2 H3. subst.
-      change ([b]++l)%list with (b::l) in H5. injection H5. intros. subst.
-      destruct H.
+    inversion H0; subst.
+    + destruct H. subst. eauto. eauto.
+    + destruct H.      
       * subst. eauto.
       * specialize (IHf a0 H). contradict IHf. solve_sorted.
 Qed.
@@ -341,6 +332,7 @@ Proof.
   - intros d f1 H H0 H1.
     ec.
   - intros d f1 H H0 H1.
+    appify_goal.
     ec.
     + Obtain (In a f1) as H2. ec. re. eapply ltsin2lt. ea. ea.
     + eapply IHf2. ea. intros a0 H2. eapply H0. apply in_cons. ea. eapply sortedtail. ea.
@@ -353,7 +345,7 @@ Proof.
   revert d f1 f2.
   induction f3.
   - intros d f1 f2 H H0 H1 H2. ec.
-  - intros d f1 f2 H H0 H1 H2. ec.
+  - intros d f1 f2 H H0 H1 H2. appify_goal. ec.
     + Obtain (In a f1 \/ In a f2) as H3. ec. re. destruct H3.
       * eapply ltsin2lt. ea. ea.
       * eapply ltsin2lt. ea. ea.
@@ -368,7 +360,7 @@ Proof.
   - intros d f1 H H0 H1.
     ec.
   - intros d f1 H H0 H1.
-    ec.
+    appify_goal. ec.
     + Obtain (In a f1) as H2. ec. re. eapply sltin2lt. ea. ea.
     + eapply sorted2slt. ea.
     + ea.
@@ -380,13 +372,15 @@ Proof.
   revert d f1 f2.
   induction f3.
   - intros d f1 f2 H H0 H1 H2. ec.
-  - intros d f1 f2 H H0 H1 H2. ec.
+  - intros d f1 f2 H H0 H1 H2. appify_goal. ec.
     + Obtain (In a f1 \/ In a f2) as H3. ec. re. destruct H3.
       * eapply sltin2lt. ea. ea.
       * eapply sltin2lt. ea. ea.
     + eapply sorted2slt. ea.
     + ea.
 Qed.
+
+Opaque List.app.
 
 (* Unlift should eventually be part of unerase - but it can't be
 automated currently because of a Coq bug (3410) which causes failed
@@ -675,9 +669,9 @@ Section subset.
           case rr.
           { intros ssr isProperr. eapply IsSubset. clear isProperr isProperl. sia.
             destruct isProperl, isProperr.
-            - left. destruct H as [a e]. exists a. si.
-            - left. destruct H as [a e]. exists a. si.
-            - left. destruct H0 as [a e]. exists a. si.
+            - left. destruct e as [a e]. exists a. si.
+            - left. destruct e as [a e]. exists a. si.
+            - left. destruct e0 as [a e0]. exists a. si.
             - right. sia. }
           { intros a in1 nin2. clear isProperl. eapply (NotSubset _ _ a). all:specall a. all:si. }
         * intros a in1 nin2. eapply (NotSubset _ _ a). all:specall a. all:si.
@@ -687,9 +681,6 @@ Section subset.
 End subset.
 
 Section equivalence.
-
-  Ltac appify H := match type of H with
-                       context [?a::?X] => change (a::X)%list with ([a]++X)%list in H end.
 
   Lemma sorted_in_head{x y f1 f2} : (forall a : A, In a (x::f1) -> In a (y::f2)) ->
                                     (forall a : A, In a (y::f2) -> In a (x::f1)) ->
@@ -739,7 +730,7 @@ Section equivalence.
     case (subset t1 t2).
     - intros ss isProper.
       destruct isProper.
-      + right. destruct H as [a e]. si.
+      + right. destruct e as [a e]. si.
       + left. Esorteds. si.
     - intros a in1 nin2. right. si.
   Qed.

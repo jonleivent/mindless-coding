@@ -215,6 +215,11 @@ Ltac leaves :=
     | H:gaptree _ _ #0 _ |- _ => apply leaf1 in H; simplify_hyps
   end.
 
+Ltac leaf_nil_cleanup :=
+  repeat match goal with
+           | H: ?F=[] |- _ => rewrite H in *
+         end.
+
 Hint Extern 1 => leaves.
 
 Definition isLeaf{gl gr h f}(t : gaptree gl gr h f) : {h=#0} + {h<>#0}.
@@ -547,7 +552,7 @@ Section deletion.
     Recurse t = Node gl tl d gr tr [GoLeft|GoRight].
     Compare x d.
     - eapply Deleted.
-      eapply delMinOrMax.  all:ea.
+      eapply delMinOrMax. all:ea.
     - xinv GoLeft.
       + eauto.
       + intro X. xinv X. intros [? ? t'] r.
@@ -560,7 +565,7 @@ Section deletion.
           { leaves.
             assert (ho=#0/\gl=G0/\gr=G1).
             { clear s. gsplit gl; gsplit gr. unerase. eauto. } sh. leaves. simpl gS.
-            ec. ec. ec. rewrite H3. ec. ec. re. 2:zauto. re. se. ec. }
+            ec. ec. ec. leaf_nil_cleanup. ec. ec. re. 2:zauto. re. se. ec. }
           { eapply dFitLeft. all:try ea. se. }
     - xinv GoRight.
       + eauto.
@@ -574,7 +579,7 @@ Section deletion.
           { leaves.
             assert (ho=#0/\gr=G0/\gl=G1).
             { clear s. gsplit gr; gsplit gl. unerase. injection okr. eauto. } sh. leaves. simpl gS.
-            ec. ec. ec. ec. rewrite H3. ec. re. 2:zauto. re. se. ec. }
+            ec. ec. ec. ec. leaf_nil_cleanup. ec. re. 2:zauto. re. se. ec. }
           { eapply dFitRight. all:try ea. se. }
   Qed.
 
@@ -640,47 +645,46 @@ Section joining.
   Proof.
     generalize_eqs_vars t2.
     induction t2 eqn:E.
-    - intros. sh.
+    - intros t1 h2 s H H0. sh.
       assert (h1=0) by omega. subst. leaves.
       ec. instantiate (1:=1). ses. ec. ec. ec.
       eauto. eauto. tauto. ea. ec. tauto.
-    - intros. clear E IHg2. subst ho.
-      case (eq_nat_dec h1 h2); intros.
-      + subst.
+    - intros t1 h2 s0 H H0. clear E IHg2. subst ho.
+      case (eq_nat_dec h1 h2).
+      + intros H1. subst.
         ec. instantiate (1:=S h2). ses. ec. ea. ea. eauto. eauto. tauto. ea. ec. tauto.
-      + assert (h1<h2) by omega. clear H H1.
-        case (eq_nat_dec (S h1) h2); intros.
-        * subst. clear H2.
+      + intros H1. assert (h1<h2) as H2 by omega. clear H H1.
+        case (eq_nat_dec (S h1) h2).
+        * intros H. subst. clear H2.
           ec. instantiate (1:=S(S h1)). ses. ec. ea. ea. 
           instantiate(1:=G1). re. rewrite H0. eauto. rewrite H0. tauto. se. ec. eauto.
-        * assert (S h1<h2) by omega. clear H H2.
+        * intros H. assert (S h1<h2) as H1 by omega. clear H H2.
           destruct gl eqn:E.
           { simpl gS in *.
             elim (unS h2 H0). intros h2m1 Hh2m1. elim (unS h2m1 Hh2m1). intros h2m2 Hh2m2.
             eelim (IHg1 g1 eq_refl t1 h2m2 _ _ Hh2m2). intros h ? ? g j. clear IHg1.
-            simple inversion j.
-            - rewrite <-H in *.
-              rewrite group3Eapp. ec. instantiate (1:=h2). rewrite <-H0. ec. ea. ea.
-              instantiate (1:=gl). subst. simpl. re. ea. intros. rewrite H2 in g.
-              simple inversion g. exfalso. unerase. contradict H7. apply app_cons_not_nil.
-              discriminate_erasable. se. ec.
-            - rewrite <-H2 in *.
-              rewrite group3Eapp. ec. instantiate (1:=h2). rewrite <-H0. ec. ea. ea.
+            destruct j.
+            - rewrite group3Eapp. ec. instantiate (1:=h2). rewrite <-H0. ec. ea. ea.
+              instantiate (1:=gl). subst. simpl. re. ea. intros H H2. rewrite H in g.
+              apply leaf1 in g. destruct g as (? & ? & Fnil). exfalso. unerase.
+              symmetry in Fnil. contradict Fnil.
+              change (f1 ++ [d] ++ fl)%list with (f1++d::fl)%list. 
+              apply app_cons_not_nil.
+              se. ec.
+            - rewrite group3Eapp. ec. instantiate (1:=h2). rewrite <-H0. ec. ea. ea.
               instantiate (1:=G0). simpl. unerase. omega. ea. eauto. se. ec. }
           { simpl gS in *.
             elim (unS h2 H0). intros h2m1 Hh2m1.
             eelim (IHg1 g1 eq_refl t1 h2m1 _ _ Hh2m1). intros h ? ? g j. clear IHg1.
-            simple inversion j.
-            - rewrite <-H in *.
-              rewrite group3Eapp. ec. instantiate (1:=h2). rewrite <-H0. ec. ea. ea.
+            destruct j as [|X].
+            - rewrite group3Eapp. ec. instantiate (1:=h2). rewrite <-H0. ec. ea. ea.
               instantiate (1:=G0). simpl. ea. ea. rewrite Hh2m1. tauto. se. ec.
-            - intro X. rewrite <-H2 in *.
-              rewrite <-Hh2m1 in *.
+            - rewrite <-Hh2m1 in *.
               destruct gr.
               + simpl gS in *. subst.
-                elim (iRotateRight g d0 g2). intros. rewrite group3Eapp.
-                ec. instantiate (1:=h). rewrite <-H2. ea. 
-                rewrite <-H2. rewrite H0. ec. se. apply X. unerase. omega.
+                elim (iRotateRight g d0 g2). intros gl gr t. rewrite group3Eapp.
+                ec. instantiate (1:=h2). rewrite <-H0. ea. 
+                ec. se. apply X. unerase. omega.
               + simpl gS in *. subst.
                 rewrite group3Eapp. ec. instantiate (1:=S h2). ses. ec. ea. ea.
                 eauto. instantiate (1:=G1). simpl. eauto. eauto. se. ec. intro. eauto. }
@@ -698,52 +702,50 @@ Section joining.
   Proof.
     generalize_eqs_vars t1.
     induction t1 eqn:E.
-    - intros. sh.
+    - intros h1 t2 s H H0. sh.
       assert (h2=0) by omega. subst. leaves.
-      ec. instantiate (1:=1). change (#1) with (ES #0). ec. ec. ec.
+      ec. instantiate (1:=1). ses. ec. ec. ec.
       eauto. eauto. tauto. ea. ec. tauto.
-    - intros. clear E. clear IHg1. subst ho.
-      case (eq_nat_dec h1 h2); intros.
-      + subst.
-        ec. instantiate (1:=S h2). change (#(S h2)) with (ES #h2). ec. ea. ea. eauto. eauto. tauto. 
-        ea. ec. tauto.
-      + assert (h1>h2) by omega. clear H H1.
-        case (eq_nat_dec (S h2) h1); intros.
-        * subst. clear H2.
-          ec. instantiate (1:=S(S h2)). change (#(S(S h2))) with (ES(ES #h2)). ec. ea. ea. 
+    - intros h1 t2 s0 H H0. clear E IHg1. subst ho.
+      case (eq_nat_dec h1 h2).
+      + intros H1. subst.
+        ec. instantiate (1:=S h2). ses. ec. ea. ea. eauto. eauto. tauto. ea. ec. tauto.
+      + intros H1. assert (h1>h2) as H2 by omega. clear H H1.
+        case (eq_nat_dec (S h2) h1).
+        * intros H. subst. clear H2.
+          ec. instantiate (1:=S(S h2)). ses. ec. ea. ea. 
           rewrite H0. eauto. instantiate(1:=G1). re. rewrite H0. tauto. se. ec. eauto.
-        * assert (S h2<h1) by omega. clear H H2.
+        * intros H. assert (S h2<h1) as H1 by omega. clear H H2.
           rewrite okr in H0.
           destruct gr eqn:E.
           { simpl gS in *.
             elim (unS h1 H0). intros h1m1 Hh1m1. elim (unS h1m1 Hh1m1). intros h1m2 Hh1m2.
             eelim (IHg2 g2 eq_refl h1m2 t2 _ _ Hh1m2). intros h ? ? g j. clear IHg2.
-            simple inversion j.
-            - rewrite <-H in *.
-              rewrite ?Eapp_assoc. ec. instantiate (1:=h1). rewrite <-H0. ec. ea. ea.
+            destruct j.
+            - rewrite ?Eapp_assoc. ec. instantiate (1:=h1). rewrite <-H0. ec. ea. ea.
               symmetry in okr. exact okr.
-              instantiate (1:=gr). subst. simpl. re. intros. rewrite H3 in g.
-              simple inversion g. exfalso. unerase. contradict H7. apply app_cons_not_nil.
-              discriminate_erasable. se. ec.
-            - rewrite <-H2 in *.
-              rewrite ?Eapp_assoc. ec. instantiate (1:=h1). rewrite <-H0. ec. ea. ea.
+              instantiate (1:=gr). subst. simpl. re. intros H H2. rewrite H2 in g.
+              apply leaf1 in g. destruct g as (? & ? & Fnil). exfalso. unerase. 
+              symmetry in Fnil. contradict Fnil.
+              change (fr ++ [d] ++ f2)%list with (fr++d::f2)%list.
+              apply app_cons_not_nil.
+              se. ec.
+            - rewrite ?Eapp_assoc. ec. instantiate (1:=h1). rewrite <-H0. ec. ea. ea.
               symmetry in okr. exact okr.
               instantiate (1:=G0). simpl. unerase. omega. eauto. se. ec. }
           { simpl gS in *.
             elim (unS h1 H0). intros h1m1 Hh1m1.
             eelim (IHg2 g2 eq_refl h1m1 t2 _ _ Hh1m1). intros h ? ? g j. clear IHg2.
-            simple inversion j.
-            - rewrite <-H in *.
-              rewrite ?Eapp_assoc. ec. instantiate (1:=h1). rewrite <-H0. ec. ea. ea.
+            destruct j as [|X].
+            - rewrite ?Eapp_assoc. ec. instantiate (1:=h1). rewrite <-H0. ec. ea. ea.
               symmetry in okr. exact okr.
               instantiate (1:=G0). simpl. ea. rewrite Hh1m1. tauto. se. ec.
-            - intro X. rewrite <-H2 in *.
-              rewrite <-Hh1m1 in *.
+            - rewrite <-Hh1m1 in *.
               destruct gl.
               + simpl gS in *. subst.
-                elim (iRotateLeft g1 d0 g). intros. rewrite ?Eapp_assoc.
-                ec. instantiate (1:=h). rewrite <-H2. ea. 
-                rewrite <-H2. rewrite H0. ec. se. apply X. unerase. omega.
+                elim (iRotateLeft g1 d0 g). intros gl gr t. rewrite ?Eapp_assoc.
+                ec. instantiate (1:=h1). rewrite <-H0. ea. 
+                ec. se. apply X. unerase. omega.
               + simpl gS in *. subst.
                 rewrite ?Eapp_assoc. ec. instantiate (1:=S h1). ses. ec. ea. ea.
                 instantiate (1:=G1). simpl. eauto. eauto. eauto. se. ec. intro. eauto. }
@@ -787,24 +789,22 @@ Gaphtree(h : nat){gl gr}(t : gaptree gl gr #h f) : gaphtree f.
 
 Instance gaphtree_tree : tctree.Tree A := { tree := gaphtree }.
 { ec. apply Leaf. }
-{ intros f t. destruct t. xinv t. eauto. }
-{ intros f t. destruct t. generalize_eqs t. destruct t eqn:E.
+{ intros f [? ? ? t]. xinv t. eauto. }
+{ intros f [? ? ? t]. generalize_eqs t. destruct t eqn:E.
   - ec. re.
   - intros H. subst.
     elim (g2h H). intros hl' <-. generalize H. rewrite okr. intro Hr. elim (g2h Hr). intros hr' <-.
     eapply tctree.BreakNode. 3:re. ec. ea. ec. ea. }
-{ intros x f t. destruct t.
+{ intros x f [? ? ? t].
   Call (insert x t).
   - ec. re.
   - intros t0 i. simple inversion i.
-    + subst h0 ho. eapply tctree.Inserted. ec. ea. re.
-    + intro. subst h0 ho. eapply tctree.Inserted. ec. ea. re. }
-{ intros fl tl d fr tr s.
-  destruct tl, tr.
-  elim (join h t d h0 t0 s). intros h1 gl1 gr1 g j.
+    + subst. subst ho. eapply tctree.Inserted. ec. ea. re.
+    + intro. subst. eapply tctree.Inserted. ec. ea. re. }
+{ intros fl [? ? ? tl] d fr [? ? ? tr] s.
+  elim (join _ tl d _ tr s). intros h1 gl1 gr1 g j.
   ec. ea. }
-{ intros f t.
-  destruct t.
+{ intros f [? ? ? t].
   Call (delmin t).
   - ec. re.
   - intros dr.
@@ -812,10 +812,9 @@ Instance gaphtree_tree : tctree.Tree A := { tree := gaphtree }.
     intros t0 dr0.
     xinv dr0.
     + destruct t0. eapply tctree.DelminNode. ec. 2:re. ea.
-    + destruct t0. elim (unS _ H). intros ho' ->.
+    + destruct t0. eelim (unS h);[|ea]. intros ho' ->.
       eapply tctree.DelminNode. ec. 2:re. ea. }
-{ intros f t.
-  destruct t.
+{ intros f [? ? ? t].
   Call (delmax t).
   - ec. re.
   - intros dr.
@@ -823,10 +822,9 @@ Instance gaphtree_tree : tctree.Tree A := { tree := gaphtree }.
     intros t0 dr0.
     xinv dr0.
     + destruct t0. eapply tctree.DelmaxNode. ec. 2:re. ea.
-    + destruct t0. elim (unS _ H). intros ho' ->.
+    + destruct t0. eelim (unS h);[|ea]. intros ho' ->.
       eapply tctree.DelmaxNode. ec. 2:re. ea. }
-{ intros x f t.
-  destruct t.
+{ intros x f [? ? ? t].
   Call (delete x t).
   - ec. ea.
   - intros dr.
@@ -834,7 +832,7 @@ Instance gaphtree_tree : tctree.Tree A := { tree := gaphtree }.
     intros t0 dr0.
     xinv dr0.
     + destruct t0. eapply tctree.Deleted. ec. 2:re. ea.
-    + destruct t0. elim (unS _ H). intros ho' ->.
+    + destruct t0. eelim (unS h);[|ea]. intros ho' ->.
       eapply tctree.Deleted. ec. 2:re. ea. }
 Defined.
 

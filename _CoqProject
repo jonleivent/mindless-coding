@@ -1,3 +1,4 @@
+-R . ""
 ordered.v
 erasable.v
 sorted.v

@@ -2,9 +2,17 @@
 
 type __ = Obj.t
 
+val xorb : bool -> bool -> bool
+
+val negb : bool -> bool
+
 type nat =
 | O
 | S of nat
+
+val fst : ('a1 * 'a2) -> 'a1
+
+val snd : ('a1 * 'a2) -> 'a2
 
 type comparison =
 | Eq
@@ -16,13 +24,25 @@ type compareSpecT =
 | CompLtT
 | CompGtT
 
+val compareSpec2Type : comparison -> compareSpecT
+
+type 'a compSpecT = compareSpecT
+
+val compSpec2Type : 'a1 -> 'a1 -> comparison -> 'a1 compSpecT
+
 type 'a sig0 =
   'a
   (* singleton inductive, whose constructor was exist *)
 
+type reflect =
+| ReflectT
+| ReflectF
+
+val iff_reflect : bool -> reflect
+
 type 'a eqDec = 'a -> 'a -> bool
 
-type 'a ordered = { eq_dec : 'a eqDec; compare : ('a -> 'a -> comparison);
+type 'a ordered = { eq_dec : 'a eqDec; compare0 : ('a -> 'a -> comparison);
                     compare_spec : ('a -> 'a -> compareSpecT) }
 
 val compare_spec : 'a1 ordered -> 'a1 -> 'a1 -> compareSpecT

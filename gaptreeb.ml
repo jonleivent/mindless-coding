@@ -1,9 +1,30 @@
 type __ = Obj.t
 let __ = let rec f _ = Obj.repr f in Obj.repr f
 
+(** val xorb : bool -> bool -> bool **)
+
+let xorb b1 b2 =
+  if b1 then if b2 then false else true else b2
+
+(** val negb : bool -> bool **)
+
+let negb = function
+| true -> false
+| false -> true
+
 type nat =
 | O
 | S of nat
+
+(** val fst : ('a1 * 'a2) -> 'a1 **)
+
+let fst = function
+| (x, y) -> x
+
+(** val snd : ('a1 * 'a2) -> 'a2 **)
+
+let snd = function
+| (x, y) -> y
 
 type comparison =
 | Eq
@@ -15,13 +36,37 @@ type compareSpecT =
 | CompLtT
 | CompGtT
 
+(** val compareSpec2Type : comparison -> compareSpecT **)
+
+let compareSpec2Type = function
+| Eq -> CompEqT
+| Lt -> CompLtT
+| Gt -> CompGtT
+
+type 'a compSpecT = compareSpecT
+
+(** val compSpec2Type : 'a1 -> 'a1 -> comparison -> 'a1 compSpecT **)
+
+let compSpec2Type x y c =
+  compareSpec2Type c
+
 type 'a sig0 =
   'a
   (* singleton inductive, whose constructor was exist *)
 
+type reflect =
+| ReflectT
+| ReflectF
+
+(** val iff_reflect : bool -> reflect **)
+
+let iff_reflect = function
+| true -> ReflectT
+| false -> ReflectF
+
 type 'a eqDec = 'a -> 'a -> bool
 
-type 'a ordered = { eq_dec : 'a eqDec; compare : ('a -> 'a -> comparison);
+type 'a ordered = { eq_dec : 'a eqDec; compare0 : ('a -> 'a -> comparison);
                     compare_spec : ('a -> 'a -> compareSpecT) }
 
 (** val compare_spec : 'a1 ordered -> 'a1 -> 'a1 -> compareSpecT **)
@@ -116,13 +161,13 @@ let iRotateRight tl d tr =
 
 (** val iFitLeft : gap -> gap -> gaptree -> a -> gaptree -> insertResult0 **)
 
-let iFitLeft gl gr t d tr =
+let iFitLeft gl gr t0 d tr =
   match gl with
-  | G1 -> Inserted0 ((Node (G0, t, d, gr, tr)), ISameH)
+  | G1 -> Inserted0 ((Node (G0, t0, d, gr, tr)), ISameH)
   | G0 ->
     (match gr with
-     | G1 -> Inserted0 ((iRotateRight t d tr), ISameH)
-     | G0 -> Inserted0 ((Node (G0, t, d, G1, tr)), Higher))
+     | G1 -> Inserted0 ((iRotateRight t0 d tr), ISameH)
+     | G0 -> Inserted0 ((Node (G0, t0, d, G1, tr)), Higher))
 
 (** val iRotateLeft : gaptree -> a -> gaptree -> gapnode **)
 
@@ -157,17 +202,17 @@ let rec insert0 x = function
    | CompLtT ->
      (match insert0 x tl with
       | FoundByInsert -> FoundByInsert
-      | Inserted0 (t0, i) ->
+      | Inserted0 (t1, i) ->
         (match i with
-         | ISameH -> Inserted0 ((Node (gl, t0, d, gr, tr)), ISameH)
-         | Higher -> iFitLeft gl gr t0 d tr))
+         | ISameH -> Inserted0 ((Node (gl, t1, d, gr, tr)), ISameH)
+         | Higher -> iFitLeft gl gr t1 d tr))
    | CompGtT ->
      (match insert0 x tr with
       | FoundByInsert -> FoundByInsert
-      | Inserted0 (t0, i) ->
+      | Inserted0 (t1, i) ->
         (match i with
-         | ISameH -> Inserted0 ((Node (gl, tl, d, gr, t0)), ISameH)
-         | Higher -> iFitRight gl gr tl d t0)))
+         | ISameH -> Inserted0 ((Node (gl, tl, d, gr, t1)), ISameH)
+         | Higher -> iFitRight gl gr tl d t1)))
 
 type dres =
 | DSameH
@@ -222,7 +267,7 @@ let dFitLeft gl gr tl d tr =
      | G0 ->
        let h0 = tryLowering tr in
        (match h0 with
-        | Lowered t -> (Node (G1, tl, d, G0, t)),Lower
+        | Lowered t0 -> (Node (G1, tl, d, G0, t0)),Lower
         | LowerFailed -> (dRotateLeft tl d tr),DSameH))
   | G0 -> (Node (G1, tl, d, gr, tr)),DSameH
 
@@ -234,13 +279,13 @@ let rec delmin0 = function
   (match delmin0 tl with
    | NoMin -> MinDeleted (d, (tr,Lower))
    | MinDeleted (m, dr) ->
-     let t,dr0 = dr in
+     let t0,dr0 = dr in
      (match dr0 with
-      | DSameH -> MinDeleted (m, ((Node (gl, t, d, gr, tr)),DSameH))
+      | DSameH -> MinDeleted (m, ((Node (gl, t0, d, gr, tr)),DSameH))
       | Lower ->
         if isLeaf tr
         then MinDeleted (m, ((Node (G0, Leaf, d, G0, Leaf)),Lower))
-        else MinDeleted (m, (dFitLeft gl gr t d tr))))
+        else MinDeleted (m, (dFitLeft gl gr t0 d tr))))
 
 (** val dRotateRight : gaptree -> a -> gaptree -> gapnode **)
 
@@ -266,7 +311,7 @@ let dFitRight gl gr tl d tr =
      | G0 ->
        let h0 = tryLowering tl in
        (match h0 with
-        | Lowered t -> (Node (G0, t, d, G1, tr)),Lower
+        | Lowered t0 -> (Node (G0, t0, d, G1, tr)),Lower
         | LowerFailed -> (dRotateRight tl d tr),DSameH))
   | G0 -> (Node (gl, tl, d, G1, tr)),DSameH
 
@@ -282,13 +327,13 @@ let rec delmax0 = function
   (match delmax0 tr with
    | NoMax -> MaxDeleted (d, (tl,Lower))
    | MaxDeleted (m, dr) ->
-     let t,dr0 = dr in
+     let t0,dr0 = dr in
      (match dr0 with
-      | DSameH -> MaxDeleted (m, ((Node (gl, tl, d, gr, t)),DSameH))
+      | DSameH -> MaxDeleted (m, ((Node (gl, tl, d, gr, t0)),DSameH))
       | Lower ->
         if isLeaf tl
         then MaxDeleted (m, ((Node (G0, Leaf, d, G0, Leaf)),Lower))
-        else MaxDeleted (m, (dFitRight gl gr tl d t))))
+        else MaxDeleted (m, (dFitRight gl gr tl d t0))))
 
 (** val delMinOrMax : gap -> gap -> gaptree -> a -> gaptree -> ( * ) **)
 
@@ -301,19 +346,19 @@ let delMinOrMax gl gr tl d tr =
        (match h with
         | NoMin -> assert false (* absurd case *)
         | MinDeleted (m, dr) ->
-          let t,dr0 = dr in
+          let t0,dr0 = dr in
           (match dr0 with
-           | DSameH -> (Node (G1, tl, m, G1, t)),DSameH
-           | Lower -> (Node (G0, tl, m, G1, t)),Lower))
+           | DSameH -> (Node (G1, tl, m, G1, t0)),DSameH
+           | Lower -> (Node (G0, tl, m, G1, t0)),Lower))
      | G0 ->
        let h = delmin0 tr in
        (match h with
         | NoMin -> assert false (* absurd case *)
         | MinDeleted (m, dr) ->
-          let t,dr0 = dr in
+          let t0,dr0 = dr in
           (match dr0 with
-           | DSameH -> (Node (G1, tl, m, G0, t)),DSameH
-           | Lower -> (Node (G0, tl, m, G0, t)),Lower)))
+           | DSameH -> (Node (G1, tl, m, G0, t0)),DSameH
+           | Lower -> (Node (G0, tl, m, G0, t0)),Lower)))
   | G0 ->
     (match gr with
      | G1 ->
@@ -321,19 +366,19 @@ let delMinOrMax gl gr tl d tr =
        (match h with
         | NoMax -> assert false (* absurd case *)
         | MaxDeleted (m, dr) ->
-          let t,dr0 = dr in
+          let t0,dr0 = dr in
           (match dr0 with
-           | DSameH -> (Node (G0, t, m, G1, tr)),DSameH
-           | Lower -> (Node (G0, t, m, G0, tr)),Lower))
+           | DSameH -> (Node (G0, t0, m, G1, tr)),DSameH
+           | Lower -> (Node (G0, t0, m, G0, tr)),Lower))
      | G0 ->
        let h = delmin0 tr in
        (match h with
         | NoMin -> Leaf,Lower
         | MinDeleted (m, dr) ->
-          let t,dr0 = dr in
+          let t0,dr0 = dr in
           (match dr0 with
-           | DSameH -> (Node (G0, tl, m, G0, t)),DSameH
-           | Lower -> (Node (G0, tl, m, G1, t)),DSameH)))
+           | DSameH -> (Node (G0, tl, m, G0, t0)),DSameH
+           | Lower -> (Node (G0, tl, m, G1, t0)),DSameH)))
 
 type deleteResult0 =
 | DelNotFound0
@@ -350,20 +395,20 @@ let rec delete0 x = function
      (match delete0 x tl with
       | DelNotFound0 -> DelNotFound0
       | Deleted0 dr ->
-        let t0,dr0 = dr in
+        let t1,dr0 = dr in
         Deleted0
         (match dr0 with
-         | DSameH -> (Node (gl, t0, d, gr, tr)),DSameH
-         | Lower -> if isLeaf tr then (Node (G0, Leaf, d, G0, Leaf)),Lower else dFitLeft gl gr t0 d tr))
+         | DSameH -> (Node (gl, t1, d, gr, tr)),DSameH
+         | Lower -> if isLeaf tr then (Node (G0, Leaf, d, G0, Leaf)),Lower else dFitLeft gl gr t1 d tr))
    | CompGtT ->
      (match delete0 x tr with
       | DelNotFound0 -> DelNotFound0
       | Deleted0 dr ->
-        let t0,dr0 = dr in
+        let t1,dr0 = dr in
         Deleted0
         (match dr0 with
-         | DSameH -> (Node (gl, tl, d, gr, t0)),DSameH
-         | Lower -> if isLeaf tl then (Node (G0, Leaf, d, G0, Leaf)),Lower else dFitRight gl gr tl d t0)))
+         | DSameH -> (Node (gl, tl, d, gr, t1)),DSameH
+         | Lower -> if isLeaf tl then (Node (G0, Leaf, d, G0, Leaf)),Lower else dFitRight gl gr tl d t1)))
 
 (** val g2h : nat -> gap -> nat **)
 
@@ -401,7 +446,7 @@ let joinle h1 t1 d h2 t2 =
                     | JSameH -> JoinResult (h3, (Node (G0, x0, d0, gr, tr)), JSameH)
                     | JHigher ->
                       (match gr with
-                       | G1 -> JoinResult (x, (iRotateRight x0 d0 tr), JSameH)
+                       | G1 -> JoinResult (h3, (iRotateRight x0 d0 tr), JSameH)
                        | G0 -> JoinResult ((S h3), (Node (G0, x0, d0, G1, tr)), JHigher))))
   in f t2 t2 t1 h2
 
@@ -428,7 +473,7 @@ let joinge h1 t1 d h2 t2 =
                     | JSameH -> JoinResult (h3, (Node (gl, tl, d0, G0, x0)), JSameH)
                     | JHigher ->
                       (match gl with
-                       | G1 -> JoinResult (x, (iRotateLeft tl d0 x0), JSameH)
+                       | G1 -> JoinResult (h3, (iRotateLeft tl d0 x0), JSameH)
                        | G0 -> JoinResult ((S h3), (Node (G1, tl, d0, G0, x0)), JHigher))))
   in f t1 t1 h1 t2
 
@@ -443,61 +488,61 @@ type gaphtree =
 (** val gaphtree_tree : a tree **)
 
 let gaphtree_tree =
-  { leaf = (Obj.magic (Gaphtree (O, Leaf))); break = (fun _ t ->
-    let Gaphtree (h, t0) = Obj.magic t in
-    (match t0 with
+  { leaf = (Obj.magic (Gaphtree (O, Leaf))); break = (fun _ t0 ->
+    let Gaphtree (h, t1) = Obj.magic t0 in
+    (match t1 with
      | Leaf -> BreakLeaf
      | Node (gl, g1, d, gr, g2) ->
        BreakNode ((Obj.magic (Gaphtree ((g2h h gl), g1))), d, (Obj.magic (Gaphtree ((g2h h gr), g2))))));
-    insert = (fun x _ t ->
-    let Gaphtree (h, t0) = Obj.magic t in
-    let h0 = insert0 x t0 in
+    insert = (fun x _ t0 ->
+    let Gaphtree (h, t1) = Obj.magic t0 in
+    let h0 = insert0 x t1 in
     let x0 = fun _ _ ->
       match h0 with
       | FoundByInsert -> InsertFound
-      | Inserted0 (t1, i) ->
+      | Inserted0 (t2, i) ->
         (match i with
-         | ISameH -> Inserted (Gaphtree (h, t1))
-         | Higher -> Inserted (Gaphtree ((S h), t1)))
+         | ISameH -> Inserted (Gaphtree (h, t2))
+         | Higher -> Inserted (Gaphtree ((S h), t2)))
     in
     Obj.magic x0 __ __); join = (fun _ tl d _ tr _ ->
-    let Gaphtree (h, t) = Obj.magic tl in
-    let Gaphtree (h0, t0) = Obj.magic tr in
-    let JoinResult (x, x0, x1) = join0 h t d h0 t0 in Obj.magic (Gaphtree (x, x0))); delmin = (fun _ t ->
-    let Gaphtree (h, t0) = Obj.magic t in
-    let h0 = delmin0 t0 in
+    let Gaphtree (h, tl0) = Obj.magic tl in
+    let Gaphtree (h0, tr0) = Obj.magic tr in
+    let JoinResult (x, x0, x1) = join0 h tl0 d h0 tr0 in Obj.magic (Gaphtree (x, x0))); delmin = (fun _ t0 ->
+    let Gaphtree (h, t1) = Obj.magic t0 in
+    let h0 = delmin0 t1 in
     let x = fun _ _ ->
       match h0 with
       | NoMin -> DelminLeaf
       | MinDeleted (m, dr) ->
-        let t1,dr0 = dr in
+        let t2,dr0 = dr in
         (match dr0 with
-         | DSameH -> DelminNode (m, (Gaphtree (h, t1)))
-         | Lower -> DelminNode (m, (Gaphtree ((pred h), t1))))
+         | DSameH -> DelminNode (m, (Gaphtree (h, t2)))
+         | Lower -> DelminNode (m, (Gaphtree ((pred h), t2))))
     in
-    Obj.magic x __ __); delmax = (fun _ t ->
-    let Gaphtree (h, t0) = Obj.magic t in
-    let h0 = delmax0 t0 in
+    Obj.magic x __ __); delmax = (fun _ t0 ->
+    let Gaphtree (h, t1) = Obj.magic t0 in
+    let h0 = delmax0 t1 in
     let x = fun _ _ ->
       match h0 with
       | NoMax -> DelmaxLeaf
       | MaxDeleted (m, dr) ->
-        let t1,dr0 = dr in
+        let t2,dr0 = dr in
         (match dr0 with
-         | DSameH -> DelmaxNode (m, (Gaphtree (h, t1)))
-         | Lower -> DelmaxNode (m, (Gaphtree ((pred h), t1))))
+         | DSameH -> DelmaxNode (m, (Gaphtree (h, t2)))
+         | Lower -> DelmaxNode (m, (Gaphtree ((pred h), t2))))
     in
-    Obj.magic x __ __); delete = (fun x _ t ->
-    let Gaphtree (h, t0) = Obj.magic t in
-    let h0 = delete0 x t0 in
+    Obj.magic x __ __); delete = (fun x _ t0 ->
+    let Gaphtree (h, t1) = Obj.magic t0 in
+    let h0 = delete0 x t1 in
     let x0 = fun _ ->
       match h0 with
       | DelNotFound0 -> DelNotFound
       | Deleted0 dr ->
-        let t1,dr0 = dr in
+        let t2,dr0 = dr in
         (match dr0 with
-         | DSameH -> Deleted (Gaphtree (h, t1))
-         | Lower -> Deleted (Gaphtree ((pred h), t1)))
+         | DSameH -> Deleted (Gaphtree (h, t2))
+         | Lower -> Deleted (Gaphtree ((pred h), t2)))
     in
     Obj.magic x0 __) }
 
