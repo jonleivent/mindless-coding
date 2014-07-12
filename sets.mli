@@ -129,17 +129,19 @@ val subset : a tree0 -> a tree0 -> subsetResult
 
 val equiv : a tree0 -> a tree0 -> bool
 
-type 'b fold_left_result = 'b
+type 't ecomprehension = 't
 
-val fold_left : ('a1 -> a -> 'a1) -> a tree0 -> 'a1 -> 'a1 fold_left_result
+type 'b foldLeftResult = 'b ecomprehension
 
-type 'b fold_right_result = 'b
+val fold_left : ('a1 -> a -> 'a1) -> a tree0 -> 'a1 -> 'a1 foldLeftResult
 
-val fold_right : (a -> 'a1 -> 'a1) -> 'a1 -> a tree0 -> 'a1 fold_right_result
+type 'b foldRightResult = 'b ecomprehension
 
-val cardinality : a tree0 -> nat
+val fold_right : (a -> 'a1 -> 'a1) -> 'a1 -> a tree0 -> 'a1 foldRightResult
 
-val map : (a -> 'a1) -> a tree0 -> 'a1 list
+val cardinality : a tree0 -> nat ecomprehension
 
-val flatten : a tree0 -> a list
+val map : (a -> 'a1) -> a tree0 -> 'a1 list ecomprehension
+
+val flatten : a tree0 -> a list ecomprehension
 

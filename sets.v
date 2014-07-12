@@ -56,7 +56,21 @@ measurable with nats, erased or not.  We exploit the fact that generic
 trees (typeclass Tree) provide an erased view of their flattened
 contents, to which we can apply Elength to as a measure.  This also
 results in very easy measure obligations to solve
-(solve_recursive_measure handles them all). *)
+(solve_recursive_measure handles them all). 
+
+Note that if we relied instead on structural recursion, then we would
+need to implement a version of each set function below on each
+different type of tree.  The use of recursion over the (length of the)
+common erased flattened contents makes it possible to share code (and
+proofs) over all trees without inducing any runtime cost (such as
+would be the case if we carried around heights on all nodes).  An
+alternative would be to require every instance of the Tree typeclass
+to prove that the break function induces a well-founded ordering as if
+it were structural (which it is intended to be).  But, proving
+well-founded recursion over the erased flattened contents just needs
+to be done once.
+
+*)
 
 Ltac RecursiveAll term :=
   let R:=fresh in
@@ -398,9 +412,9 @@ Ltac unlift H := repeat setoid_rewrite unliftP1 in H.
 *)
 
 Ltac unlift_all_work_around_3410 :=
-  repeat match goal with 
+  repeat match goal with
              H:?T|-_ =>
-             match eval lazy delta - [liftP1] in T with
+             match eval cbv beta delta - [liftP1] in T with
                  context[liftP1] => unlift H
              end
          end;
@@ -732,37 +746,124 @@ Section equivalence.
 
 End equivalence.
 
-(*Let-style notation to unerase a binding:*)
-Notation "[ x #= y | P ]" := (sig (fun _ZZ => (ex (fun x => #x=y /\ _ZZ=P)))) (at level 0).
+(*
+[experiment with this notation more before moving it to erasable.v]
+
+Erasable comprehensions:
+  { foo x y z |# x <- f a ; z <- g b #}
+
+In the above example, (f a) and (g b) are erased (have erased types),
+but foo takes no erased args at positions x and z.  The y arg stays
+free.
+
+There is abbreviated notation: x<-x can be written as just < x.
+
+How these comprehensions are interpreted:
+
+A single-value type witnessed by erased X:
+  
+  { X #}
+
+A single-value type witnessed by erased # X, where X is (likely)
+unerased:
+
+  {# X #}
+
+(this is always solvable by: eexists; reflexivity - and can always be
+destructed to get X via destruct H as [X E]; apply Erasable_inj in E)
+
+An term X with bindings a and c of erasable terms b and d, the
+expression is erased due to the erasable bindings:
+
+  X |# a <- b; c <- d
+
+A single-value type witnessed by: X with bindings of erasable terms,
+which is erased:
+
+  { X |# a <- b; d <- d #}
+
+It is possible to bind variables in erased comprehensions to instances
+of other erased comprehensions using the <-- operator, as in:
+
+H1 : { X #}
+H2 : { Y |# ...; x <-- H1 ; ... #}
+
+In the above, H2 is equivalent to { Y |# ...; x <- X ; ... #}.
+However, the notation becomes useful when H1 is a binding-carying
+comprehension, as in:
+
+H1 : { X |# ... #}
+H2 : { Y |# ...; x <-- H1 ; ... #}
+
+The same syntax allows H1 to be an existential type:
+
+H1 : exists x, P
+H2 : { Y |# ...; x <-- H1 ; ... #}
+
+Finally, the most general form of binding is any irrefutable pattern
+(as with desructuring let variants):
+
+H1 : ... some single-constuctor form ...
+H2 : { Y |# ...; P << H1 ; ... #}
+
+where P is the pattern.
+
+These comprehensions are cool - but are they useful?  Not so much in
+the code below, but maybe in other cases?  Also note that the
+comprehensions can get complex enough so that the unification
+algorithm can no longer figure out that two are equivalent - and that
+can be a problem to the Obtian tactic.
+
+*)
+
+Definition Ecomprehension{T}(ex : ##T) := {x : T | #x=ex}.
+Notation "e ; v << x" := (let v := x in e)
+                           (at level 199, left associativity) : Erasable_scope.
+Notation "f |# v << x" := (let v := x in #f)
+                            (at level 199, left associativity) : Erasable_scope.
+Notation "e ; v <- x" := (let (v) := x in e)
+                           (at level 199, left associativity) : Erasable_scope.
+Notation "f |# v <- x" := (let (v) := x in #f)
+                            (at level 199, left associativity) : Erasable_scope.
+Notation "e ; v <-- x" := (let (v, _) := x in e)
+                            (at level 199, left associativity) : Erasable_scope.
+Notation "f |# v <-- x" := (let (v, _) := x in #f)
+                             (at level 199, left associativity) : Erasable_scope.
+Notation "{ x #}" := (Ecomprehension x)
+                       (at level 0) : Erasable_scope.
+Notation "e ; < v" := (e ; v <- v)
+                        (at level 199, left associativity) : Erasable_scope.
+Notation "f |# < v" := (f |# v <- v)
+                         (at level 199, left associativity) : Erasable_scope.
+
+Hint Extern 0 {# ?X #} => simpl; eexists; reflexivity.
 
 Section folding.
 
-  Definition fold_left_result{B}(foldf : B -> A -> B)(f : EL)(b : B) :=
-    [l#=f | List.fold_left foldf l b].
+  Definition foldLeftResult{B}(foldf : B->A->B)(f : EL)(b : B) := {List.fold_left foldf f b |#<f#}.
 
-  Definition fold_left{B}(foldf : B -> A -> B){f}(t : tree f)(b : B) : fold_left_result foldf f b.
+  Definition fold_left{B}(foldf : B->A->B){f}(t : tree f)(b : B) : foldLeftResult foldf f b.
   Proof.
     Recursive f over f t b.
     case (break t).
-    - intros ->. eexists. unerase. simpl. re.
+    - intros ->. eexists. simpl. re.
     - intros fl tl d fr tr ->.
-      Obtain (fold_left_result foldf fl b) as [xl el].
-      Obtain (fold_left_result foldf fr (foldf xl d)) as [xr er].
-      exists xr. unerase. rewrite ?fold_left_app. subst. f_equal.
+      Obtain (foldLeftResult foldf fl b) as [xl el].
+      Obtain (foldLeftResult foldf fr (foldf xl d)) as [xr er].
+      eexists. unerase. subst xl. rewrite ?fold_left_app. simpl. ea.
   Qed.
 
-  Definition fold_right_result{B}(foldf : A -> B -> B)(b : B)(f : EL) :=
-    [l#=f | List.fold_right foldf b l].
+  Definition foldRightResult{B}(foldf : A->B->B)(b : B)(f : EL) := {List.fold_right foldf b f |#<f#}.
 
-  Definition fold_right{B}(foldf : A -> B -> B)(b : B){f}(t : tree f) : fold_right_result foldf b f.
+  Definition fold_right{B}(foldf : A->B->B)(b : B){f}(t : tree f) : foldRightResult foldf b f.
   Proof.
     Recursive f over f t b.
     case (break t).
-    - intros ->. eexists. unerase. simpl. re.
+    - intros ->. eexists. simpl. re.
     - intros fl tl d fr tr ->.
-      Obtain (fold_right_result foldf b fr) as [xr er].
-      Obtain (fold_right_result foldf (foldf d xr) fl) as [xl el].
-      exists xl. unerase. rewrite ?fold_right_app. subst. f_equal.
+      Obtain (foldRightResult foldf b fr) as [xr er].
+      Obtain (foldRightResult foldf (foldf d xr) fl) as [xl el].
+      eexists. unerase. subst xr. rewrite ?fold_right_app. simpl. ea.
   Qed.
 
 End folding.
@@ -772,28 +873,29 @@ Section cardinality.
   (*a tree could easily store its own cardinality internally - so this
   function should just be a default for the tree typeclass.*)
 
-  Definition cardinality{f}(t : tree f) : [l#=f | length l] :=
+  Definition cardinality{f}(t : tree f) : {length f |#<f#} :=
     fold_right (fun _ n => S n) 0 t.
 
 End cardinality.
 
 Section mapping.
 
-  Definition map{B}(mapf : A -> B){f}(t : tree f) : [l#=f | List.map mapf l] :=
+  Definition map{B}(mapf : A -> B){f}(t : tree f) : {List.map mapf f |#<f#} :=
     fold_right (fun a bs => (mapf a)::bs) nil t.
 
 End mapping.
 
 Section flatten.
 
-  Definition flatten{f}(t : tree f) : [l#=f | l].
+  Definition flatten{f}(t : tree f) : {f #}.
   Proof.
     elim (map id t).
-    intros x p. setoid_rewrite map_id in p. eexists. ea.
+    intros x p.
+    eexists. unerase. rewrite map_id in p. ea.
   Qed.
 
 End flatten.
-
+ 
 Set Printing Width 80.
 Require Import ExtrOcamlBasic.
 Extract Inlined Constant eq_nat_dec => "(=)".
@@ -804,8 +906,6 @@ Extract Inlined Constant plus => "(+)".
 functions if enat_xrect is inlined - so turn off its inlining to make
 the code more readable: *)
 Extraction NoInline enat_xrect.
-Extraction Inline fold_right_result.
-Extraction Inline fold_left_result.
 
 Extraction "sets.ml"
            find delete_free_delmin union intersection setdifference filter partition

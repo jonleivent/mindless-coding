@@ -276,10 +276,12 @@ let equiv t1 t2 =
   | IsSubset isProper -> if isProper then false else true
   | NotSubset a0 -> false
 
-type 'b fold_left_result = 'b
+type 't ecomprehension = 't
+
+type 'b foldLeftResult = 'b ecomprehension
 
 (** val fold_left :
-    ('a1 -> a -> 'a1) -> a tree0 -> 'a1 -> 'a1 fold_left_result **)
+    ('a1 -> a -> 'a1) -> a tree0 -> 'a1 -> 'a1 foldLeftResult **)
 
 let fold_left foldf t b =
   enat_xrect (fun _ recurse _ t0 b0 _ ->
@@ -289,10 +291,10 @@ let fold_left foldf t b =
       let x = recurse __ __ __ tl b0 __ in recurse __ __ __ tr (foldf x d) __)
     __ t b __
 
-type 'b fold_right_result = 'b
+type 'b foldRightResult = 'b ecomprehension
 
 (** val fold_right :
-    (a -> 'a1 -> 'a1) -> 'a1 -> a tree0 -> 'a1 fold_right_result **)
+    (a -> 'a1 -> 'a1) -> 'a1 -> a tree0 -> 'a1 foldRightResult **)
 
 let fold_right foldf b t =
   enat_xrect (fun _ recurse _ t0 b0 _ ->
@@ -302,17 +304,17 @@ let fold_right foldf b t =
       let x = recurse __ __ __ tr b0 __ in recurse __ __ __ tl (foldf d x) __)
     __ t b __
 
-(** val cardinality : a tree0 -> nat **)
+(** val cardinality : a tree0 -> nat ecomprehension **)
 
 let cardinality t =
   fold_right (fun x n -> S n) O t
 
-(** val map : (a -> 'a1) -> a tree0 -> 'a1 list **)
+(** val map : (a -> 'a1) -> a tree0 -> 'a1 list ecomprehension **)
 
 let map mapf t =
   fold_right (fun a0 bs -> (mapf a0) :: bs) [] t
 
-(** val flatten : a tree0 -> a list **)
+(** val flatten : a tree0 -> a list ecomprehension **)
 
 let flatten t =
   map id t
