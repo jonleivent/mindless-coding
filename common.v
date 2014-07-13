@@ -29,7 +29,6 @@ Export ListNotations.
 Require Export erasable.
 Export ErasableNotation.
 
-Global Opaque app.
 Global Opaque NotIn.
 
 Section defs.

@@ -131,12 +131,6 @@ Ltac se := solve_esorted.
 
 Hint Extern 20 (Esorted _) => solve_esorted.
 
-Ltac appify H := match type of H with
-                     context [?a::?X] => change (a::X)%list with ([a]++X)%list in H end.
-
-Ltac appify_goal := match goal with 
-                        |- context [?a::?X] => change (a::X)%list with ([a]++X)%list end.
-
 Section finding.
 
   (* It is possible to define find for generic trees: *)
@@ -221,37 +215,16 @@ they provide a very easy way to simplify sorted/In/lt goals.  Maybe
 eventually turn solvesorted into a general rewrite-based solver over
 sorted/In/lt/logical-connectives.  *)
 
-Transparent List.app.
-
 Lemma ltsin2lt{a d f} : In a f -> lts f d -> lt a d.
 Proof.
   revert a d.
-  induction f.
-  - intros. contradiction.
-  - intros a0 d H H0.
-    inversion H0; subst.
-    + destruct H.
-      * subst. tauto.
-      * contradiction.
-    + destruct H.
-      * subst. ea.
-      * apply IHf. ea. ea.
+  induction f. all:solve_sorted.
 Qed.
 
 Lemma sltin2lt{a d f} : In a f -> slt d f -> lt d a.
 Proof.
   revert a d.
-  induction f.
-  - intros. contradiction.
-  - intros a0 d H H0.
-    inversion H0; subst.
-    + destruct H.
-      * subst. tauto.
-      * contradiction.
-    + destruct H.
-      * subst. ea.
-      * apply IHf. ea. 
-        eapply slt_trans. ea. ea.
+  induction f. all:solve_sorted.
 Qed.
 
 Hint Resolve ltsin2lt sltin2lt.
@@ -296,27 +269,13 @@ Hint Extern 10 => match goal with
 Lemma ltsin{a f} : In a f -> lts f a -> False.
 Proof.
   revert a.
-  induction f.
-  - intros. contradiction.
-  - intros a0 H H0.
-    inversion H0; subst.
-    + destruct H. subst. eauto. eauto.
-    + destruct H.
-      * subst. eauto.
-      * eauto.
+  induction f. all:solve_sorted.
 Qed.
 
 Lemma sltin{a f} : In a f -> slt a f -> False.
 Proof.
   revert a.
-  induction f.
-  - intros. contradiction.
-  - intros a0 H H0.
-    inversion H0; subst.
-    + destruct H. subst. eauto. eauto.
-    + destruct H.      
-      * subst. eauto.
-      * specialize (IHf a0 H). contradict IHf. solve_sorted.
+  induction f. all:solve_sorted.
 Qed.
 
 Hint Extern 10 => match goal with H1:In ?A ?F, H2:lts ?F ?A |- _ =>
@@ -328,15 +287,7 @@ Hint Extern 10 => match goal with H1:In ?A ?F, H2:slt ?A ?F |- _ =>
 Lemma ltsinlts{d f1 f2} : lts f1 d -> (forall a, In a f2 -> In a f1) -> sorted f2 -> lts f2 d.
 Proof.
   revert d f1.
-  induction f2.
-  - intros d f1 H H0 H1.
-    ec.
-  - intros d f1 H H0 H1.
-    appify_goal.
-    ec.
-    + Obtain (In a f1) as H2. ec. re. eapply ltsin2lt. ea. ea.
-    + eapply IHf2. ea. intros a0 H2. eapply H0. apply in_cons. ea. eapply sortedtail. ea.
-    + ea.
+  induction f2. all:solve_sorted.
 Qed.
 
 Lemma lts2inlts{d f1 f2 f3} : lts f1 d -> lts f2 d -> (forall a, In a f3 -> In a f1 \/ In a f2) ->
@@ -344,26 +295,16 @@ Lemma lts2inlts{d f1 f2 f3} : lts f1 d -> lts f2 d -> (forall a, In a f3 -> In a
 Proof.
   revert d f1 f2.
   induction f3.
-  - intros d f1 f2 H H0 H1 H2. ec.
-  - intros d f1 f2 H H0 H1 H2. appify_goal. ec.
-    + Obtain (In a f1 \/ In a f2) as H3. ec. re. destruct H3.
-      * eapply ltsin2lt. ea. ea.
-      * eapply ltsin2lt. ea. ea.
-    + eapply IHf3. exact H. exact H0. intros a0 H3. apply H1. apply in_cons. ea. eapply sortedtail. ea.
-    + ea.
+  - intros. ec.
+  - intros d f1 f2 H H0 H1 H2. 
+    (*remove this and the next one doesn't solve=>*)solve_sorted. specialize (H1 a). solve_sorted.
+    (*I think that the above shows that solve_sorted is not confluent - which is bad*)
 Qed.
 
 Lemma sltinslt{d f1 f2} : slt d f1 -> (forall a, In a f2 -> In a f1) -> sorted f2 -> slt d f2.
 Proof.
   revert d f1.
-  induction f2.
-  - intros d f1 H H0 H1.
-    ec.
-  - intros d f1 H H0 H1.
-    appify_goal. ec.
-    + Obtain (In a f1) as H2. ec. re. eapply sltin2lt. ea. ea.
-    + eapply sorted2slt. ea.
-    + ea.
+  induction f2. all:solve_sorted.
 Qed.
 
 Lemma slt2inslt{d f1 f2 f3} : slt d f1 -> slt d f2 -> (forall a, In a f3 -> In a f1 \/ In a f2) ->
@@ -371,16 +312,9 @@ Lemma slt2inslt{d f1 f2 f3} : slt d f1 -> slt d f2 -> (forall a, In a f3 -> In a
 Proof.
   revert d f1 f2.
   induction f3.
-  - intros d f1 f2 H H0 H1 H2. ec.
-  - intros d f1 f2 H H0 H1 H2. appify_goal. ec.
-    + Obtain (In a f1 \/ In a f2) as H3. ec. re. destruct H3.
-      * eapply sltin2lt. ea. ea.
-      * eapply sltin2lt. ea. ea.
-    + eapply sorted2slt. ea.
-    + ea.
+  - intros. ec.
+  - intros d f1 f2 H H0 H1 H2. specialize (H1 a). solve_sorted.
 Qed.
-
-Opaque List.app.
 
 (* Unlift should eventually be part of unerase - but it can't be
 automated currently because of a Coq bug (3410) which causes failed
@@ -692,7 +626,7 @@ Section equivalence.
     intros H3.
     elim (H0 y). auto. 2:ec;re.
     intros H4.
-    appify H1. appify H2. si.
+    si.
   Qed.
 
   Lemma sorted_in_ext{f1 f2} : (forall a : A, In a f1 -> In a f2) ->
@@ -704,21 +638,20 @@ Section equivalence.
     Recursive (#f1++#f2).
     destruct f1, f2.
     - re.
-    - exfalso. setoid_rewrite in_nil_rw in H0. eapply H0. ec. re.
-    - exfalso. setoid_rewrite in_nil_rw in H. eapply H. ec. re.
+    - exfalso. apply (H0 a). ec. re.
+    - exfalso. apply (H a). ec. re.
     - f_equal. eapply sorted_in_head; ea.
-      appify H1. appify H2.
-      obtain; clear Recurse. 3:eapply sortedr;ea. 3:eapply sortedr;ea.
+      obtain; clear Recurse. 3:solve_sorted. 3:solve_sorted.
       + assert (a=a0) by (eapply sorted_in_head; ea). subst.
         intros a1 H3.
         case (eq_dec a0 a1).
-        * intros ->. exfalso. si.
+        * intros ->. exfalso. solve_sorted.
         * intros H4.
           elim (H a1). congruence. tauto. simpl. tauto.
       + assert (a=a0) by (eapply sorted_in_head; ea). subst.
         intros a1 H3.
         case (eq_dec a0 a1).
-        * intros ->. exfalso. si.
+        * intros ->. exfalso. solve_sorted.
         * intros H4.
           elim (H0 a1). congruence. tauto. simpl. tauto.
   Qed.
@@ -730,9 +663,9 @@ Section equivalence.
     case (subset t1 t2).
     - intros ss isProper.
       destruct isProper.
-      + right. destruct e as [a e]. si.
+      + right. destruct e as [a e]. solve_sorted.
       + left. Esorteds. si.
-    - intros a in1 nin2. right. si.
+    - intros a in1 nin2. right. solve_sorted.
   Qed.
 
 End equivalence.

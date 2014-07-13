@@ -43,11 +43,13 @@ Section defs.
   Inductive slt : A -> list A -> Prop :=
   | slt0(a : A) : slt a []
   | slt1(a b : A) : lt a b -> slt a [b]
-  | sltN(a b : A)(l : list A) : lt a b -> slt b l -> sorted ([b]++l) -> slt a ([b]++l).
+  | sltN(a b : A)(l : list A) : lt a b -> slt b l -> sorted (b::l) -> slt a (b::l).
+
+  Hint Constructors slt.
 
   Infix "!<" := slt (at level 70) : list_scope.
 
-  Lemma sorted2slt : forall l a, sorted ([a]++l) <-> a !< l.
+  Lemma sorted2slt : forall l a, sorted (a::l) <-> a !< l.
   Proof.
     induction l as [|a' l IHl].
     - intros a. split.
@@ -68,7 +70,9 @@ Section defs.
   Inductive lts : list A -> A -> Prop :=
   | lts0(a : A) : lts [] a
   | lts1(a b : A) : lt a b -> lts [a] b
-  | ltsN(a b : A)(l : list A) : lt a b -> lts l b -> sorted([a]++l) -> lts ([a]++l) b.
+  | ltsN(a b : A)(l : list A) : lt a b -> lts l b -> sorted(a::l) -> lts (a::l) b.
+
+  Hint Constructors lts.
 
   Infix "<!" := lts (at level 70) : list_scope.
 
@@ -91,10 +95,11 @@ Section defs.
           { inversion H; assumption. }
         * simpl. constructor.
           { apply IHl. inversion H. assumption. }
-          { inversion H. subst. eapply desort. eassumption. }
+          { inversion H. subst. eapply desort. 
+            instantiate (2:=nil). eassumption. }
   Qed.
 
-  Lemma sorted2both : forall l1 l2 a, sorted (l1++[a]++l2) <-> l1 <! a /\ a !< l2.
+  Lemma sorted2both : forall l1 l2 a, sorted (l1++a::l2) <-> l1 <! a /\ a !< l2.
   Proof.
     intros l1 l2 a.
     split.
@@ -103,7 +108,7 @@ Section defs.
       + rewrite <- sorted2lts.
         eapply sortedl.
         rewrite <- app_assoc.
-        eassumption.
+        simpl. eassumption.
       + rewrite <- sorted2slt.
         eapply sortedr.
         eassumption.
@@ -122,15 +127,50 @@ Section defs.
          { apply IHl1. eapply sortedtail. eassumption. }
          { inversion H. assumption. }
   Qed.
+  
+  Ltac appify H := repeat match type of H with
+                       context [?a::?X] => 
+                       first [constr_eq X (@nil A); fail 1
+                             |change (a::X) with ([a]++X) in H] end.
+  
+  Ltac appify_goal := repeat match goal with 
+                          |- context [?a::?X] => 
+                          first [constr_eq X (@nil A); fail 1
+                                |change (a::X) with ([a]++X)] end.
 
-  Lemma rwslts : forall a b l2 l3, a !< l2 ++ [b] ++ l3 <-> a !< l2  /\ lt a b /\ l2 <! b /\ b !< l3.
+  Lemma redlts : forall l a b, (a::l) <! b <-> a !< l /\ l <! b /\ lt a b.
+  Proof.
+    split.
+    - intros H.
+      inversion H; subst.
+      + repeat split; eauto.
+      + repeat split; eauto.
+        apply sorted2slt. assumption.
+    - intros (H1 & H2 & H3).
+      econstructor; eauto.
+      rewrite sorted2slt. assumption.
+  Qed.
+
+  Lemma redslt : forall l a b, a !< (b::l) <-> lt a b /\ b !< l.
+  Proof.
+    split.
+    - intros H.
+      inversion H; subst.
+      + repeat split; eauto.
+      + repeat split; eauto.
+    - intros (H1 & H2).
+      econstructor; eauto.
+      rewrite sorted2slt. assumption.
+  Qed.
+
+  Lemma rwslts : forall a b l2 l3, a !< l2++b::l3 <-> a !< l2  /\ lt a b /\ l2 <! b /\ b !< l3.
   Proof.
     intros a b l2 l3.
     rewrite <- sorted2slt.
     split.
-    - intro H.
+    - intro H. appify H.
       pose (sortedr H) as H1.
-      pose (sortedr H1) as H2.
+      pose (sortedr H1) as H2. simpl in H2.
       rewrite sorted2slt in H2.
       rewrite app_assoc in H1.
       apply sortedl in H1.
@@ -139,7 +179,7 @@ Section defs.
       pose H as H4.
       rewrite app_assoc in H4.
       apply sortedl in H4.
-      rewrite sorted2slt in H4.
+      simpl in H4. rewrite sorted2slt in H4.
       tauto.
     - intros (H1 & H2 & H3).
       rewrite <- sorted2slt in H1.
@@ -174,7 +214,7 @@ Section defs.
         * assumption.
   Defined.
 
-  Lemma sorted2both2 : forall l0 l1 l2 a, sorted (l0++l1++[a]++l2) <-> (l0++l1) <! a /\ a !< l2.
+  Lemma sorted2both2 : forall l0 l1 l2 a, sorted (l0++l1++a::l2) <-> (l0++l1) <! a /\ a !< l2.
   Proof.
     intros.
     rewrite app_assoc.
@@ -182,6 +222,15 @@ Section defs.
   Defined.
 
   Lemma ltssorted : forall l a, l <! a -> sorted l.
+  Proof.
+    intros l a H.
+    inversion H; subst.
+    - constructor.
+    - constructor.
+    - assumption.
+  Qed.
+
+  Lemma sltsorted : forall l a, a !< l -> sorted l.
   Proof.
     intros l a H.
     inversion H; subst.
@@ -238,7 +287,7 @@ Section defs.
   Proof.
     intros l0 l1 a H.
     rewrite <- sorted2slt in *.
-    rewrite app_assoc in H.
+    appify H. rewrite app_assoc in H.
     apply (sortedl H).
   Qed.   
 
@@ -246,7 +295,7 @@ Section defs.
   Proof.
     intros l0 l1 a H.
     rewrite <- sorted2slt in *.
-    apply (sortedm H).
+    appify H. apply (sortedm H).
   Qed.
 
   Lemma ltsright1 : forall l a b, a !< ([b]++l) -> lt a b.
@@ -271,9 +320,10 @@ Section defs.
     rewrite <- sorted2slt in *.
     pose (@sortins _ _ [] q r a b H H3 H2) as H4.
     rewrite app_nil_l in H4.
-    rewrite app_assoc.
+    appify_goal. rewrite app_assoc.
     eapply sortedm.
     rewrite <- app_assoc.
+    appify H4.
     eassumption.
   Qed.
 
@@ -303,20 +353,26 @@ End defs.
 
 Create HintDb SolveSortedDB discriminated.
 
-Hint Rewrite 
+Hint Rewrite @redlts @redslt
      @ltssplit @sorted2both @rwslts @sorted2lts @sorted2slt @sorted2both2 @lts2lt @slt2lt
 : solveSortedDB.
 
 Hint Rewrite <- app_assoc : solveSortedDB.
+Hint Rewrite <- app_comm_cons : solveSortedDB.
 
-Hint Constructors LocallySorted : solveSortedDB.
+Hint Constructors LocallySorted lts slt : solveSortedDB.
 
 Hint Resolve lts_trans slt_trans sltleft sltright ltsright1 sltlts2sorted sltapp : solveSortedDB.
 
 Ltac solve_sorted := 
-  intros;
+  intros; subst; simpl in *;
   autorewrite with solveSortedDB in *;
-  intuition eauto with solveSortedDB.
+  try (progress (intuition (simpl in *; eauto with solveSortedDB)); solve_sorted).
+
+Hint Extern 10 (sorted ?X) => match goal with 
+                                | H : lts X _ |- _ => apply (ltssorted _ _ H)
+                                | H : slt _ X |- _ => apply (sltsorted _ _ H) end
+                              : solveSortedDB.
 
 Hint Extern 20 =>
 match goal with H : sorted (?L0++?L1++[?A]++?L2) |- _ => 
@@ -347,6 +403,19 @@ Section Examples.
   Proof. solve_sorted. Qed.
 
   Goal forall p q a b, sorted ((p++[a])++[b]++q) -> sorted(p++[a]++q).
+  Proof. solve_sorted. Qed.
+
+  Goal forall p q r a b, sorted ((p++a::q)++b::r) -> sorted (q++b::r).
+  Proof. solve_sorted. Qed.
+
+  Goal forall p q r s a b c, sorted ((p++a::(q++b::r))++c::s) ->
+                             sorted (p++a::((q++b::r)++c::s)).
+  Proof. solve_sorted. Qed.
+
+  Goal forall l a, lts l a -> sorted l.
+  Proof. solve_sorted. Qed.
+
+  Goal forall l a, slt a l -> sorted l.
   Proof. solve_sorted. Qed.
 
 End Examples.

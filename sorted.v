@@ -58,14 +58,15 @@ Section defs.
   Lemma sortedtail : forall {l : list A}{a : A}, sorted (a::l) -> sorted l.
   Proof.
     intros l a H.
-    change (a::l) with ([a]++l) in H.
-    eauto using sortedr.
+    destruct l.
+    - eauto.
+    - inversion H. eauto.
   Qed.
 
   Lemma sortins : forall {l1 l2 l3 : list A}{a b : A},
-                    sorted(l1++[a]++l2) ->
-                    sorted(l2++[b]++l3) -> lt a b ->
-                    sorted(l1++[a]++l2++[b]++l3).
+                    sorted(l1++a::l2) ->
+                    sorted(l2++b::l3) -> lt a b ->
+                    sorted(l1++a::l2++b::l3).
   Proof.
     induction l1.
     - intros l2 l3 a b H H0 H1.
@@ -126,8 +127,8 @@ Section defs.
   Qed.
 
   Lemma NotInl: forall {x d : A}{l1 l2:list A},
-                  NotIn x l1 -> lt x d -> sorted(l1++[d]++l2) ->
-                  NotIn x (l1++[d]++l2).
+                  NotIn x l1 -> lt x d -> sorted(l1++d::l2) ->
+                  NotIn x (l1++d::l2).
   Proof.
     induction l1 as [|y l1 IHl1].
     - intros l2 H H0 H1.
@@ -143,8 +144,8 @@ Section defs.
   Qed.
 
   Lemma NotInr: forall {x d : A}{l1 l2 : list A},
-                  NotIn x l2 -> lt d x -> sorted(l1++[d]++l2) ->
-                  NotIn x (l1++[d]++l2).
+                  NotIn x l2 -> lt d x -> sorted(l1++d::l2) ->
+                  NotIn x (l1++d::l2).
   Proof.
     induction l1 as [|y l1 IHl1].
     - intros l2 H H0 H1.
