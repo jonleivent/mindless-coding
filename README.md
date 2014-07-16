@@ -15,7 +15,6 @@ extracted code, such that the extracted code is very human readable
 and does not carry any extra runtime burden from its verification.  As
 was pointed out by others, the erasability mechanism used here is very
 similar to one described in:
-
 http://www.pps.univ-paris-diderot.fr/~letouzey/download/Letouzey_Spitters_05.pdf
 
 3. How tactics, automation, and interaction with the proof assistant

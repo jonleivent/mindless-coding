@@ -28,6 +28,7 @@ should work with all tree varieties (AVL, Red-Black, Gap, etc.) *)
 
 Require Import common.
 Require Import tctree.
+Require Import pstacs.
 Typeclasses eauto := 9.
 
 (* Some common tactic abbreviations: *)
@@ -296,9 +297,7 @@ Proof.
   revert d f1 f2.
   induction f3.
   - intros. ec.
-  - intros d f1 f2 H H0 H1 H2. 
-    (*remove this and the next one doesn't solve=>*)solve_sorted. specialize (H1 a). solve_sorted.
-    (*I think that the above shows that solve_sorted is not confluent - which is bad*)
+  - intros d f1 f2 f1d f2d H s. posit H. solve_sorted.
 Qed.
 
 Lemma sltinslt{d f1 f2} : slt d f1 -> (forall a, In a f2 -> In a f1) -> sorted f2 -> slt d f2.
@@ -313,7 +312,7 @@ Proof.
   revert d f1 f2.
   induction f3.
   - intros. ec.
-  - intros d f1 f2 H H0 H1 H2. specialize (H1 a). solve_sorted.
+  - intros d f1 f2 df1 df2 H s. posit H. solve_sorted.
 Qed.
 
 (* Unlift should eventually be part of unerase - but it can't be
@@ -420,6 +419,8 @@ Section merging.
   
   Hint Resolve join.
 
+  Hint Extern 50 (delminResult _ _) => ec;[ |re|..].
+
   Definition delete_free_delmin{f}(t : tree f) : delminResult tree f.
   Proof.
     Recursive f.
@@ -428,13 +429,7 @@ Section merging.
     - intros ->. ec. re.
     - intros fl tl d fr tr ->.
       Obtain (delminResult tree fl) as dr.
-      case dr.
-      + intros ->. rewrite Eapp_nil_l.
-        eapply DelminNode. 2:re. ea.
-      + intros m f' t0 ->.
-        rewrite ?Eapp_assoc.
-        eapply DelminNode. 2:re.
-        eauto.
+      case dr. all:intros. all:subst. all:zauto.
   Qed.
 
   (* Merge is just a join using delmin to get the "middle" datum.  It

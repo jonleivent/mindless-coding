@@ -82,7 +82,8 @@ COMPILE_VFILES=common.v\
   erasable.v\
   ordered.v\
   natsind.v\
-  tctree.v
+  tctree.v\
+  pstacs.v
 
 VFILES:=redblack.v\
   avl.v\

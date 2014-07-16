@@ -1,29 +1,59 @@
-1. Finish providing explicit hypothesis (variable) names in gaptree.v,
-because it might not be possible to automate the proofs to the point
-where very few variables are used by name.
-  - I think I finished this, but it is hard to be sure.
+- The sets.v proofs aren't sufficiently mindless (not that they're
+  hard - they're all vanilla divide-and-conquer, really).  I think
+  this can be improved by having a "decision procedure" like
+  solve_sorted that includes the In predicate as well.  However,
+  solve_sorted is a bit fragile and ad-hoc.  Do better: come up with a
+  robust solver over lists with sorted, lt, In, and logical
+  connectives so that sets.v and other things that use erased lists as
+  their basic constraint carrier (which would be a lot of things) can
+  be more mindless.  This can't be too tough, can it?  Also, think
+  more about simple proof search techniques that would help.
 
-2. Try some more proof automation in gaptree.v.  At least try to speed
-up the "assert .. by xinv .." cases by converting them to lemmas.
+- The issue with automatic naming of variables/hypotheses in Coq
+  continues.  It is just too easy and convenient, while mindlessly
+  coding away, to use whatever names Coq generates.  I think the best
+  way to solve this is to add (or have added) an option to Coq that
+  will cause Coq to change its automatic naming convention in some
+  obvious way - like adding an "_auto" suffix to every variable it
+  names (even via fresh) - meaning every variable that wasn't given
+  its name via an intro pattern or by virtue of being a parameter.
+  Then at least one can find the use of automatic names quickly in a
+  proof script.  I've looked a little at the Coq sourses to see if it
+  is easy to do this - not as easy as I'd like.
 
-3. See if redblack.v can be re-organized to show that rebalancing is
-only done O(1) times per insert/delete, as was done in gaptree.v.
-This probably won't be nearly as easy as it was in gaptree.v.
+  Or - maybe move away from raw Ltac to some other Coq tactic suite,
+  such as SSreflect or the one from Software Foundations?  Or, design
+  my own set of tactics which would all either take an intro pattern
+  to name new things, or leave them in the consequent so that intro
+  can name them (and then use ^C-^A-Tab in Proof General).
 
-4. Develop an OCaml test suite for the extracted code.  Include
-performance benchmarks.
+- See if redblack.v can be re-organized to show that rebalancing is
+  only done O(1) times per insert/delete, as was done in gaptree.v.
+  This probably won't be nearly as easy as it was in gaptree.v (and
+  especially gaptreeb.v - where all sorts of nice properties are
+  easily seen in the extracted code).
 
-5. Try "mindless coding" on something that's not a tree.
+- Try "mindless coding" on something that's not a tree.  Does sets.v
+  count?  Yes and no.  Really we need a demonstration far away from
+  data structures 101, but where the benefits of easily readable
+  extracted code aren't muted.  Not that mindless coding wouldn't be
+  effective when generating not-so-nice code, it just wouldn't be as
+  obviously so.
 
-6. Can the proofs in redblack.v and/or avl.v be automated to the point
-where they're all just one tactic?  Some experience with eauto and
-typeclasses eauto suggests that they don't behave well when some hints
-are equivalent to the identity function under some parameterizations.
-However, if excessive use of these semi-identity functions can be
-controlled, then it might be possible to use the Hint Extern costs to
-control which inversions and case analyses are done in which order.
-But, this switches the programmer's burden from proving (which is
-already very easy in these cases) to hint writing - so it might not be
-such a good idea.
+- Develop (or acquire) an OCaml test suite for the extracted code.
+  Include performance benchmarks.  Mindlessly code this?  Doing so is
+  not likely to demonstrate anything useful.
 
-7. What if anything should be done with gap trees?  A paper?
+- What if anything should be done with gap trees?  A paper?  Ask some
+  experts for their opinions.  I can't decide whether to spend more
+  time on gap trees or not.  I wasted (not really) a lot already
+  looking at hybrid trees.  Do the basic ethics of a computer
+  scientist (Thall shalt not abandon a New Algorithm just because it's
+  not a fun as the other stuff your doing!) require me to give gap
+  trees more attention?
+
+- Should I start up the githup-provided wiki?  I hope visitors are
+  able to understand what's going on (although they should just
+  download and try stepping through the tree proofs themselves - but
+  doing so requires fetching and building a very recent Coq trunk
+  version).  Maybe at least better comments in the proof scripts?
