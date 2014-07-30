@@ -33,8 +33,8 @@ Hint Constructors Erasable.
 Scheme Erasable_elim := Induction for Erasable Sort Prop.
 
 Module ErasableNotation.
-  Notation "## T" := (Erasable T) (at level 1) : Erasable_scope.
-  Notation "# x" := (erasable x) (at level 1) : Erasable_scope.
+  Notation "## T" := (Erasable T) (at level 1, format "## T") : Erasable_scope.
+  Notation "# x" := (erasable x) (at level 1, format "# x") : Erasable_scope.
   Open Scope Erasable_scope.
 End ErasableNotation.
 

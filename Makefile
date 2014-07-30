@@ -115,6 +115,8 @@ endif
 
 all: extracts
 
+vos: $(VOFILES)
+
 extracts: $(VOFILES)
 	$(COQBIN)coqtop -batch -l avl.v
 	$(COQBIN)coqtop -batch -l redblack.v

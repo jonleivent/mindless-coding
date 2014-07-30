@@ -42,6 +42,10 @@ modularization of the implementations into separate functions was done
 after-the-fact just as a way to make the resulting proofs and
 extracted code easier to read.
 
+A very basic illustration is the file zero12.v, which I encourage
+interested parties to step through interactively using (a recent
+development version of) Coq.
+
 The goal of the project is to develop (mindless-coding) techniques
 that programmers inexperienced with theorem proving can use to
 generate correct programs, where these techniques are potentially
@@ -50,11 +54,15 @@ engineering practices.  Hopefully, this will help transfer the
 technology of dependent types and theorem proving to a much wider
 audience.
 
-So far, this demonstration includes three examples: AVL trees (Coq
-source: avl.v, extracted OCaml: avl.ml and avl.mli), Red-Black trees
-(Coq source: redblack.v, extracted OCaml: redblack.ml and
-redblack.mli), and a newly discovered relative, gap trees (Coq source:
-gaptree.v, extracted OCaml: gaptree.ml and gaptree.mli).
+So far, this demonstration includes the following examples: AVL trees
+(Coq source: avl.v, extracted OCaml: avl.ml and avl.mli), Red-Black
+trees (Coq source: redblack.v, extracted OCaml: redblack.ml and
+redblack.mli), a newly discovered relative: gap trees (Coq source:
+gaptree.v, extracted OCaml: gaptree.ml and gaptree.mli), a set library
+built on generic trees (of which any of the former can provide the
+implementation) (Coq source: sets.v, extracted OCaml: sets.ml and
+sets.mli), and the zero12.v example case (try it and extract the OCaml
+yourself!).
 
 FAQ:
 
