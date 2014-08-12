@@ -130,3 +130,5 @@ FAQ:
   simple-to-read proofs, is a non-trivial accomplishment.
 
 - What are gap trees?  See gaptree.txt for details.
+  Also gaptreebfacts.txt.  Best of all: gaptree.odp (slide presentation).
+
