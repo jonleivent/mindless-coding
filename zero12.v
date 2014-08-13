@@ -157,10 +157,10 @@ Ltac liftrify_funies :=
               let Q:=fresh in
               let R:=fresh in
               evar(T:Type); evar(Q:T);
-              first [assert (H'=(liftR4 Q)) as R by (subst H' Q;unirefl)
-                    |assert (H'=(liftR3 Q)) as R by (subst H' Q;unirefl)
-                    |assert (H'=(liftR2 Q)) as R by (subst H' Q;unirefl)
-                    |assert (H'=(liftR1 Q)) as R by (subst H' Q;unirefl)];
+              first [assert (H'=(liftR4 Q)) as R by (subst H';unirefl)
+                    |assert (H'=(liftR3 Q)) as R by (subst H';unirefl)
+                    |assert (H'=(liftR2 Q)) as R by (subst H';unirefl)
+                    |assert (H'=(liftR1 Q)) as R by (subst H';unirefl)];
               subst Q T H'; clear R
           end
       end
