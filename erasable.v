@@ -78,7 +78,7 @@ Ltac unerase0 :=
     | H : _ |- _ => unerase_hyp H
     | |- _ => hnf; try simpl; 
               first[rewrite Erasable_rw
-                   |apply erasable
+                   |progress apply erasable
                    |eexists; rewrite Erasable_rw; split; [reflexivity|]
                    |let H := fresh in intro H; unerase0; try revert H]
   end; try unerase0.
@@ -178,3 +178,4 @@ things like generalize_eqs_vars. *)
 Ltac xinv H :=
     simple inversion H; clear H; simplify_hyps;
     try discriminate; try discriminate_erasable; try trivial; try tauto.
+
