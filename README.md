@@ -132,3 +132,13 @@ FAQ:
 - What are gap trees?  See gaptree.txt for details.
   Also gaptreebfacts.txt.  Best of all: gaptree.odp (slide presentation).
 
+  Update: I asked the tree algorithm experts at Princeton if they knew
+  about gap trees, and it turns out they certainly do know about them.
+  See: http://www.cs.princeton.edu/~sssix/papers/rb-trees-talg.pdf 
+  Gap trees are identical to the "wavl" trees in that soon-to-be-
+  published paper, which were first reported by the authors in 2009.
+  There's considerable difference in terminology, but the algorithms
+  are the same.  I have to admit that their terminology (using "rank"
+  vs. "height" instead my confusing use of "height" vs. "true height")
+  is much easier to understand.  I will probably update the other gap
+  tree files to both note their work and deconfuse my terminology.
