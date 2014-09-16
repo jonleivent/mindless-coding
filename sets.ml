@@ -132,13 +132,13 @@ let split x t =
       (match ordA.compare_spec x d with
        | CompEqT -> Split (true, tl, tr)
        | CompLtT ->
-         let x0 = recurse __ __ __ tl __ in
-         let Split (found, x1, x2) = x0 in
-         Split (found, x1, (join ordA treeA x2 d tr))
+         let h = recurse __ __ __ tl __ in
+         let Split (found, x0, x1) = h in
+         Split (found, x0, (join ordA treeA x1 d tr))
        | CompGtT ->
-         let x0 = recurse __ __ __ tr __ in
-         let Split (found, x1, x2) = x0 in
-         Split (found, (join ordA treeA tl d x1), x2))) __ t __
+         let h = recurse __ __ __ tr __ in
+         let Split (found, x0, x1) = h in
+         Split (found, (join ordA treeA tl d x0), x1))) __ t __
 
 type unionResult =
   a tree0
@@ -152,9 +152,9 @@ let union t1 t2 =
     | BreakLeaf -> t4
     | BreakNode (tl, d, tr) ->
       let Split (found, x, x0) = split d t4 in
-      let x1 = recurse __ __ __ __ __ tl x in
-      let x2 = recurse __ __ __ __ __ tr x0 in join ordA treeA x1 d x2) __ __
-    __ t1 t2
+      let h = recurse __ __ __ __ __ tl x in
+      let h0 = recurse __ __ __ __ __ tr x0 in join ordA treeA h d h0) __ __ __
+    t1 t2
 
 (** val delete_free_delmin : a tree0 -> (a, a tree0) delminResult **)
 
@@ -188,9 +188,9 @@ let intersection t1 t2 =
     | BreakLeaf -> treeA.leaf
     | BreakNode (tl, d, tr) ->
       let Split (found, x, x0) = split d t4 in
-      let x1 = recurse __ __ __ __ __ tl x in
-      let x2 = recurse __ __ __ __ __ tr x0 in
-      if found then join ordA treeA x1 d x2 else merge x1 x2) __ __ __ t1 t2
+      let h = recurse __ __ __ __ __ tl x in
+      let h0 = recurse __ __ __ __ __ tr x0 in
+      if found then join ordA treeA h d h0 else merge h h0) __ __ __ t1 t2
 
 type setdiffResult =
   a tree0
@@ -204,9 +204,9 @@ let setdifference t1 t2 =
     | BreakLeaf -> treeA.leaf
     | BreakNode (tl, d, tr) ->
       let Split (found, x, x0) = split d t4 in
-      let x1 = recurse __ __ __ __ __ tl x in
-      let x2 = recurse __ __ __ __ __ tr x0 in
-      if found then merge x1 x2 else join ordA treeA x1 d x2) __ __ __ t1 t2
+      let h = recurse __ __ __ __ __ tl x in
+      let h0 = recurse __ __ __ __ __ tr x0 in
+      if found then merge h h0 else join ordA treeA h d h0) __ __ __ t1 t2
 
 type filterResult =
   a tree0
@@ -219,9 +219,9 @@ let filter filt t =
     match break ordA treeA t0 with
     | BreakLeaf -> treeA.leaf
     | BreakNode (tl, d, tr) ->
-      let x = recurse __ __ __ tl __ in
-      let x0 = recurse __ __ __ tr __ in
-      if filt d then join ordA treeA x d x0 else merge x x0) __ t __
+      let h = recurse __ __ __ tl __ in
+      let h0 = recurse __ __ __ tr __ in
+      if filt d then join ordA treeA h d h0 else merge h h0) __ t __
 
 type partitionResult =
 | Partitioned of a tree0 * a tree0
@@ -233,10 +233,10 @@ let partition filt t =
     match break ordA treeA t0 with
     | BreakLeaf -> Partitioned (treeA.leaf, treeA.leaf)
     | BreakNode (tl, d, tr) ->
-      let x = recurse __ __ __ tl __ in
-      let Partitioned (tl1, tl0) = x in
-      let x0 = recurse __ __ __ tr __ in
-      let Partitioned (tr1, tr0) = x0 in
+      let h = recurse __ __ __ tl __ in
+      let Partitioned (tl1, tl0) = h in
+      let h0 = recurse __ __ __ tr __ in
+      let Partitioned (tr1, tr0) = h0 in
       if filt d
       then Partitioned ((join ordA treeA tl1 d tr1), (merge tl0 tr0))
       else Partitioned ((merge tl1 tr1), (join ordA treeA tl0 d tr0))) __ t __
@@ -288,7 +288,7 @@ let fold_left foldf t b =
     match break ordA treeA t0 with
     | BreakLeaf -> b0
     | BreakNode (tl, d, tr) ->
-      let x = recurse __ __ __ tl b0 __ in recurse __ __ __ tr (foldf x d) __)
+      let h = recurse __ __ __ tl b0 __ in recurse __ __ __ tr (foldf h d) __)
     __ t b __
 
 type 'b foldRightResult = 'b ecomprehension
@@ -301,7 +301,7 @@ let fold_right foldf b t =
     match break ordA treeA t0 with
     | BreakLeaf -> b0
     | BreakNode (tl, d, tr) ->
-      let x = recurse __ __ __ tr b0 __ in recurse __ __ __ tl (foldf d x) __)
+      let h = recurse __ __ __ tr b0 __ in recurse __ __ __ tl (foldf d h) __)
     __ t b __
 
 (** val cardinality : a tree0 -> nat ecomprehension **)

@@ -3,7 +3,7 @@ Section InductionPrinciple.
 
   Require Import Omega.
 
-  Local Definition nat_xrect_aux:
+  Definition nat_xrect_aux:
     (forall n, (forall m, m<n -> P m) -> P n) ->
     forall n, (forall m, m<n -> P m).
   Proof.
@@ -17,7 +17,7 @@ Section InductionPrinciple.
       omega.
   Qed.
 
-  Local Definition weaken:
+  Definition weaken:
     (forall n, (forall m, m<n -> P m)) -> (forall n, P n).
   Proof.
     intros X n.

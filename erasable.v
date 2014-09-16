@@ -23,7 +23,7 @@ WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 ***********************************************************************)
 
-Inductive Erasable(A : Type) : Prop :=
+Inductive Erasable(A : Set) : Prop :=
   erasable: A -> Erasable A.
 
 Arguments erasable [A] _.
@@ -44,11 +44,11 @@ Import ErasableNotation.
 what Prop already provides.  Note that it can't be mixed with general
 proof irrelevance, although it should work with less general proof
 irrelevance, such as irrelevance for equivalnce proofs.*)
-Axiom Erasable_inj : forall (A : Type)(a b : A), #a=#b -> a=b.
+Axiom Erasable_inj : forall {A : Set}{a b : A}, #a=#b -> a=b.
 
 Require Setoid. (*needed for Erasable_rw users*)
 
-Lemma Erasable_rw : forall (A: Type)(a b : A), (#a=#b) <-> (a=b).
+Lemma Erasable_rw : forall (A: Set)(a b : A), (#a=#b) <-> (a=b).
 Proof.
   intros A a b.
   split.
@@ -102,7 +102,7 @@ Ltac unerase :=
 (* Erasable+Prop is a monad, and appE is application within that monad
 of lifted functions.  But, the result would then need the "f $ x $ y"
 syntax, and would also make operators ugly... *)
-Definition appE{T1 T2}(f : ##(T1 -> T2))(x : ## T1) : ## T2.
+Definition appE{T1 T2 : Set}(f : ##(T1 -> T2))(x : ## T1) : ## T2.
 Proof.
   unerase.
   exact (f x).
@@ -114,13 +114,13 @@ Defined.
 that leave the normal application syntax intact.  This means we need
 to do a little more work to lift, but end up with a much more readable
 result. *)
-Definition lift1{A B : Type}(f : A -> B)(a : ##A) : ##B.
+Definition lift1{A B : Set}(f : A -> B)(a : ##A) : ##B.
 Proof.
   unerase.
   exact (f a).
 Defined.
 
-Definition lift2{A B C : Type}(f : A -> B -> C)(a : ##A)(b : ##B) : ##C.
+Definition lift2{A B C : Set}(f : A -> B -> C)(a : ##A)(b : ##B) : ##C.
 Proof.
   unerase.
   exact (f a b).
@@ -129,10 +129,10 @@ Defined.
 (* For Props, instead of a normal lifting of the entire signature,
 which would result in ##Prop type instead of a more usable Prop type,
 the Prop is wrapped in an existential to accept the erasable arg. *)
-Definition liftP1{A : Type}(p : A -> Prop)(ea : ##A) : Prop :=
+Definition liftP1{A : Set}(p : A -> Prop)(ea : ##A) : Prop :=
   exists (a : A), #a=ea /\ p a.
 
-Definition liftP2{A B : Type}(p : A -> B -> Prop)(ea : ##A)(eb : ##B) : Prop :=
+Definition liftP2{A B : Set}(p : A -> B -> Prop)(ea : ##A)(eb : ##B) : Prop :=
   exists (a : A), #a=ea /\ exists (b : B), #b=eb /\ p a b.
 
 Ltac discriminate_erasable :=
@@ -143,7 +143,7 @@ Ltac discriminate_erasable_hyp H :=
 
 (*Erasable injection for 1 arg functions - multi-arg cases can be
 added as needed.*)
-Lemma Einjection : forall (T T' : Type)(f : T -> T'),
+Lemma Einjection : forall (T T' : Set)(f : T -> T'),
                      (forall (a b : T), f a = f b -> a=b) ->
                      forall (ea eb : ##T), lift1 f ea = lift1 f eb -> ea=eb.
 Proof.

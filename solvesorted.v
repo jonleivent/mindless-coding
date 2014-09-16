@@ -37,7 +37,7 @@ Require Import sorted.
 Import ListNotations.
 
 Section defs.
-  Context {A : Type}.
+  Context {A : Set}.
   Context {ordA : Ordered A}.
 
   Inductive slt : A -> list A -> Prop :=
@@ -383,7 +383,7 @@ Hint Extern 10 (lt _ _) => eapply transitivity : solveSortedDB.
 (************************************************************************)
 
 Section Examples.
-  Context {A : Type}.
+  Context {A : Set}.
   Context {ordA : Ordered A}.
 
   Goal forall p q r s t u v a b c d e f,

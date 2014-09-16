@@ -497,7 +497,7 @@ let gaphtree_tree =
     insert = (fun x _ t0 ->
     let Gaphtree (h, t1) = Obj.magic t0 in
     let h0 = insert0 x t1 in
-    let x0 = fun _ _ ->
+    let h1 = fun _ _ ->
       match h0 with
       | FoundByInsert -> InsertFound
       | Inserted0 (t2, i) ->
@@ -505,13 +505,13 @@ let gaphtree_tree =
          | ISameH -> Inserted (Gaphtree (h, t2))
          | Higher -> Inserted (Gaphtree ((S h), t2)))
     in
-    Obj.magic x0 __ __); join = (fun _ tl d _ tr _ ->
+    Obj.magic h1 __ __); join = (fun _ tl d _ tr _ ->
     let Gaphtree (h, tl0) = Obj.magic tl in
     let Gaphtree (h0, tr0) = Obj.magic tr in
     let JoinResult (x, x0, x1) = join0 h tl0 d h0 tr0 in Obj.magic (Gaphtree (x, x0))); delmin = (fun _ t0 ->
     let Gaphtree (h, t1) = Obj.magic t0 in
     let h0 = delmin0 t1 in
-    let x = fun _ _ ->
+    let h1 = fun _ _ ->
       match h0 with
       | NoMin -> DelminLeaf
       | MinDeleted (m, dr) ->
@@ -520,10 +520,10 @@ let gaphtree_tree =
          | DSameH -> DelminNode (m, (Gaphtree (h, t2)))
          | Lower -> DelminNode (m, (Gaphtree ((pred h), t2))))
     in
-    Obj.magic x __ __); delmax = (fun _ t0 ->
+    Obj.magic h1 __ __); delmax = (fun _ t0 ->
     let Gaphtree (h, t1) = Obj.magic t0 in
     let h0 = delmax0 t1 in
-    let x = fun _ _ ->
+    let h1 = fun _ _ ->
       match h0 with
       | NoMax -> DelmaxLeaf
       | MaxDeleted (m, dr) ->
@@ -532,10 +532,10 @@ let gaphtree_tree =
          | DSameH -> DelmaxNode (m, (Gaphtree (h, t2)))
          | Lower -> DelmaxNode (m, (Gaphtree ((pred h), t2))))
     in
-    Obj.magic x __ __); delete = (fun x _ t0 ->
+    Obj.magic h1 __ __); delete = (fun x _ t0 ->
     let Gaphtree (h, t1) = Obj.magic t0 in
     let h0 = delete0 x t1 in
-    let x0 = fun _ ->
+    let h1 = fun _ ->
       match h0 with
       | DelNotFound0 -> DelNotFound
       | Deleted0 dr ->
@@ -544,5 +544,5 @@ let gaphtree_tree =
          | DSameH -> Deleted (Gaphtree (h, t2))
          | Lower -> Deleted (Gaphtree ((pred h), t2)))
     in
-    Obj.magic x0 __) }
+    Obj.magic h1 __) }
 

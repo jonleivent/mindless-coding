@@ -128,13 +128,13 @@ Ltac funify_evar :=
            end
     end.
 
-Definition liftR1{T1 T2}
+Definition liftR1{T1 T2 : Set}
            (f:T1->T2)(x:T1) := #(f x).
-Definition liftR2{T1 T2 T3}
+Definition liftR2{T1 T2 T3 : Set}
            (f:T1->T2->T3)(x1:T1)(x2:T2) := #(f x1 x2).
-Definition liftR3{T1 T2 T3 T4}
+Definition liftR3{T1 T2 T3 T4 : Set}
            (f:T1->T2->T3->T4)(x1:T1)(x2:T2)(x3:T3) := #(f x1 x2 x3).
-Definition liftR4{T1 T2 T3 T4 T5}
+Definition liftR4{T1 T2 T3 T4 T5 : Set}
            (f:T1->T2->T3->T4->T5)(x1:T1)(x2:T2)(x3:T3)(x4:T4)
   := #(f x1 x2 x3 x4).
 

@@ -26,7 +26,7 @@ WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 Require Import common.
 Typeclasses eauto := 8.
 
-Context {A : Type}.
+Context {A : Set}.
 Context {ordA : Ordered A}.
 
 Notation EL := (## (list A)).
@@ -149,7 +149,7 @@ match goal with H : (OKNode _ _ _ _ _) |- _ =>  xinv H end.
 (* The gaptree type exposes the gaps of each child as indices in the
 parent to make the "gapee" and "avlish" props easier to work with. *)
 
-Inductive gaptree : forall (ogap logap rogap : EG)(height : EN)(contents : EL), Type :=
+Inductive gaptree : forall (ogap logap rogap : EG)(height : EN)(contents : EL), Set :=
 | Leaf : gaptree #None #None #None #0 []
 | Node{ho gl hl fl gr hr fr gll glr grl grr}
       (g : Gap)(tl : gaptree gl gll glr hl fl)(d : A)(tr : gaptree gr grl grr hr fr)
@@ -175,7 +175,7 @@ Ltac Call x := let Q := fresh in assert (Q:=x); xinv Q.
 
 Section Find.
 
-  Inductive findResult(x : A) : forall (contents : EL), Type :=
+  Inductive findResult(x : A) : forall (contents : EL), Set :=
   | Found{fl fr} : findResult x (fl++^x++fr)
   | NotFound{f}{ni : ENotIn x f} : findResult x f.
 
@@ -277,7 +277,7 @@ Section gapping.
     destruct t; subst; simpl; eauto.
   Qed.
 
-  Inductive RegapR(g gi gl gr : EG)(h : EN)(f : EL) : Type :=
+  Inductive RegapR(g gi gl gr : EG)(h : EN)(f : EL) : Set :=
   | regapR{go} : gaptree go gl gr h f -> gi=#None/\go=#None\/gi<>#None/\go=g
                  -> RegapR g gi gl gr h f.
 
@@ -300,7 +300,7 @@ Section gapping.
     destruct isg; case (Gof t); intros [[|]|] ->. all:eauto.
   Qed.
 
-  Inductive gapnode(g : EG)(h : EN)(f : EL) : Type :=
+  Inductive gapnode(g : EG)(h : EN)(f : EL) : Set :=
   | Gapnode{gl gr}(t : gaptree g gl gr h f) : gapnode g h f.
 
 End gapping.
@@ -329,7 +329,7 @@ Section insertion.
   | Higher{h} : go=SG0 -> gapee gl gr -> ires gi go gl gr h (ES h).
 
   Inductive insertResult(x : A)
-  : forall (inG : EG)(inH : EN)(contents : EL), Type :=
+  : forall (inG : EG)(inH : EN)(contents : EL), Set :=
   | FoundByInsert{g h fl fr} : insertResult x g h (fl++^x++fr)
   | Inserted{gi go gl gr hi ho fl fr}
       (t : gaptree go gl gr ho (fl++^x++fr))(i : ires gi go gl gr hi ho)
@@ -457,7 +457,7 @@ Section deletion.
   Hint Constructors dres.
 
   Inductive delout (*intermediate result for delmin and delete*)
-  : forall (inG : EG)(inH : EN)(contents : EL), Type :=
+  : forall (inG : EG)(inH : EN)(contents : EL), Set :=
   | Delout {gi go hi ho gl gr f}
            (t : gaptree go gl gr ho f)(dc : dres gi go hi ho) : delout gi hi f.
 
@@ -467,7 +467,7 @@ Section deletion.
   doesn't have a gap.*)
   Definition avlish(gl gr : EG) := gl=SG0 \/ gr=SG0.
 
-  Inductive tryLowerResult: EG -> EG -> EN -> EL -> Type :=
+  Inductive tryLowerResult: EG -> EG -> EN -> EL -> Set :=
   | lowered{h f}(t : gaptree SG0 SG0 SG0 (ES h) f) : tryLowerResult SG1 SG1 (ES (ES h)) f
   | lowerFailed{gl gr h f}: avlish gl gr -> tryLowerResult gl gr h f.
 
@@ -515,7 +515,7 @@ Section deletion.
   Qed.
 
   Inductive delminResult 
-  : forall (inG : EG)(inH : EN)(contents : EL), Type :=
+  : forall (inG : EG)(inH : EN)(contents : EL), Set :=
   | NoMin : delminResult #None #0 []
   | MinDeleted{gi hi f}
               (m : A)(dr : delout gi hi f) : delminResult gi hi (^m++f).
@@ -619,7 +619,7 @@ Section deletion.
   Qed.
   
   Inductive delmaxResult 
-  : forall (inG : EG)(inH : EN)(contents : EL), Type :=
+  : forall (inG : EG)(inH : EN)(contents : EL), Set :=
   | NoMax : delmaxResult #None #0 []
   | MaxDeleted{gi hi f}
               (m : A)(dr : delout gi hi f) : delmaxResult gi hi (f++^m).
@@ -643,7 +643,7 @@ Section deletion.
     Qed.
   
   Inductive deleteResult(x : A)(gi : EG)(hi :EN)
-  : forall(contents : EL), Type :=
+  : forall(contents : EL), Set :=
   | DelNotFound{f}{ni : ENotIn x f} : deleteResult x gi hi f
   | Deleted{fl fr}
            (dr : delout gi hi (fl++fr)) : deleteResult x gi hi (fl++^x++fr).

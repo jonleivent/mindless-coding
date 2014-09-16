@@ -60,6 +60,7 @@ COQDOCLIBS?=\
 
 OPT?=
 COQDEP?="$(COQBIN)coqdep" -c
+OTHERFLAGS=-impredicative-set
 COQFLAGS?=-q $(OPT) $(COQLIBS) $(OTHERFLAGS) $(COQ_XML)
 COQCHKFLAGS?=-silent -o
 COQDOCFLAGS?=-interpolate -utf8
@@ -119,12 +120,12 @@ all: extracts
 vos: $(VOFILES)
 
 extracts: $(VOFILES)
-	$(COQBIN)coqtop -batch -l avl.v
-	$(COQBIN)coqtop -batch -l redblack.v
-	$(COQBIN)coqtop -batch -l gaptree.v
-	$(COQBIN)coqtop -batch -l gaptreeb.v
-	$(COQBIN)coqtop -batch -l sets.v
-	$(COQBIN)coqtop -batch -l zero12.v
+	$(COQBIN)coqtop $(OTHERFLAGS) -batch -l avl.v
+	$(COQBIN)coqtop $(OTHERFLAGS) -batch -l redblack.v
+	$(COQBIN)coqtop $(OTHERFLAGS) -batch -l gaptree.v
+	$(COQBIN)coqtop $(OTHERFLAGS) -batch -l gaptreeb.v
+	$(COQBIN)coqtop $(OTHERFLAGS) -batch -l sets.v
+	$(COQBIN)coqtop $(OTHERFLAGS) -batch -l zero12.v
 
 quick:
 	$(MAKE) -f $(firstword $(MAKEFILE_LIST)) all VO=vi

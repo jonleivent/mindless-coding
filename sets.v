@@ -37,7 +37,7 @@ Ltac ea := eassumption.
 Ltac re := reflexivity.
 Ltac sh := simplify_hyps.
 
-Context {A : Type}.
+Context {A : Set}.
 Context {ordA : Ordered A}.
 Context {treeA : Tree A}.
 
@@ -324,7 +324,7 @@ and ENotIn) so that something like "context[liftP1]" can be used to
 determine if a hypothesis has something to be unlifted before applying
 setoid_rewrite there. *)
 
-Lemma unliftP1{T}{P : T -> Prop}{x : T} : (liftP1 P) #x <-> P x.
+Lemma unliftP1{T : Set}{P : T -> Prop}{x : T} : (liftP1 P) #x <-> P x.
 Proof.
   split.
   - intros. unerase. ea.
@@ -759,9 +759,9 @@ Hint Extern 0 {# ?X #} => simpl; eexists; reflexivity.
 
 Section folding.
 
-  Definition foldLeftResult{B}(foldf : B->A->B)(f : EL)(b : B) := {List.fold_left foldf f b |#<f#}.
+  Definition foldLeftResult{B : Set}(foldf : B->A->B)(f : EL)(b : B) := {List.fold_left foldf f b |#<f#}.
 
-  Definition fold_left{B}(foldf : B->A->B){f}(t : tree f)(b : B) : foldLeftResult foldf f b.
+  Definition fold_left{B : Set}(foldf : B->A->B){f}(t : tree f)(b : B) : foldLeftResult foldf f b.
   Proof.
     Recursive f over f t b.
     case (break t).
@@ -772,9 +772,9 @@ Section folding.
       eexists. unerase. subst xl. rewrite ?fold_left_app. simpl. ea.
   Qed.
 
-  Definition foldRightResult{B}(foldf : A->B->B)(b : B)(f : EL) := {List.fold_right foldf b f |#<f#}.
+  Definition foldRightResult{B : Set}(foldf : A->B->B)(b : B)(f : EL) := {List.fold_right foldf b f |#<f#}.
 
-  Definition fold_right{B}(foldf : A->B->B)(b : B){f}(t : tree f) : foldRightResult foldf b f.
+  Definition fold_right{B : Set}(foldf : A->B->B)(b : B){f}(t : tree f) : foldRightResult foldf b f.
   Proof.
     Recursive f over f t b.
     case (break t).
@@ -799,7 +799,7 @@ End cardinality.
 
 Section mapping.
 
-  Definition map{B}(mapf : A -> B){f}(t : tree f) : {List.map mapf f |#<f#} :=
+  Definition map{B : Set}(mapf : A -> B){f}(t : tree f) : {List.map mapf f |#<f#} :=
     fold_right (fun a bs => (mapf a)::bs) nil t.
 
 End mapping.

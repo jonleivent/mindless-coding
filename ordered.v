@@ -25,7 +25,7 @@ WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 Require Export EquivDec.
 
-Class Ordered(A : Type) := 
+Class Ordered(A : Set) := 
   {
     eq_dec :> EqDec A eq;
     lt : A -> A -> Prop;

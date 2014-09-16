@@ -35,37 +35,37 @@ WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 Require Export common.
 
 Section results.
-  Context {A : Type}.
+  Context {A : Set}.
   Notation EL := (##(list A)).
 
-  Variable tree : EL -> Type.
+  Variable tree : EL -> Set.
 
   (*Keep result inductive types index-less so that they analyze easily:*)
 
-  Inductive breakResult(f : EL) : Type :=
+  Inductive breakResult(f : EL) : Set :=
   | BreakLeaf : f=[] -> breakResult f
   | BreakNode{fl}(tl : tree fl)(d : A){fr}(tr : tree fr) : f=fl++^d++fr -> breakResult f.
 
-  Inductive insertResult(x : A)(f : EL) : Type :=
+  Inductive insertResult(x : A)(f : EL) : Set :=
   | InsertFound{fl fr} : f=fl++^x++fr -> insertResult x f
   | Inserted{fl fr}(t : tree (fl++^x++fr)) : f=fl++fr -> insertResult x f.
 
-  Inductive delminResult(f : EL) : Type :=
+  Inductive delminResult(f : EL) : Set :=
   | DelminLeaf : f=[] -> delminResult f
   | DelminNode(m : A){f'}(t : tree f') : f=^m++f' -> delminResult f.
 
-  Inductive delmaxResult(f : EL) : Type :=
+  Inductive delmaxResult(f : EL) : Set :=
   | DelmaxLeaf : f=[] -> delmaxResult f
   | DelmaxNode(m : A){f'}(t : tree f') : f=f'++^m -> delmaxResult f.
 
-  Inductive deleteResult(x : A)(f : EL) : Type :=
+  Inductive deleteResult(x : A)(f : EL) : Set :=
   | DelNotFound{ni : ENotIn x f} : deleteResult x f
   | Deleted{fl fr}(t : tree (fl++fr)) : f=fl++^x++fr -> deleteResult x f.
   
 End results.
 
-Class Tree (A : Type){ordA : Ordered A} : Type :=
-  { tree     : ##(list A) -> Type;
+Class Tree (A : Set){ordA : Ordered A} : Type :=
+  { tree     : ##(list A) -> Set;
     leaf     : tree [];
     isSorted : forall {f}(t : tree f), Esorted f;
     break    : forall {f}(t : tree f), breakResult tree f;

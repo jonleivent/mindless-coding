@@ -36,7 +36,7 @@ Notation sorted := (LocallySorted lt).
 Hint Constructors LocallySorted.
 
 Section defs.
-  Context {A : Type}.
+  Context {A : Set}.
   Context {A_ordered : Ordered A}.
 
   Lemma sortedl : forall {l1 l2 : list A}, sorted (l1++l2) -> sorted l1.

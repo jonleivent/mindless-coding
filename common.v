@@ -32,7 +32,7 @@ Export ErasableNotation.
 Global Opaque NotIn.
 
 Section defs.
-  Context {A : Type}.
+  Context {A : Set}.
   Context {ordA : Ordered A}.
   
   Definition Esorted := (liftP1 sorted).
@@ -57,7 +57,7 @@ Open Scope EL_scope.
 (* Hint Extern 30 => unerase; simplify_hyps. *)
 
 Section EL_lemmas.
-  Context {A : Type}.
+  Context {A : Set}.
 
   Notation EL := (## (list A)).
 

@@ -45,7 +45,7 @@ Ltac ea := eassumption.
 Ltac re := reflexivity.
 Ltac sh := simplify_hyps.
 
-Context {A : Type}.
+Context {A : Set}.
 Context {ordA : Ordered A}.
 
 Notation EL := (## (list A)).
@@ -142,7 +142,7 @@ Hint Extern 10 (~(_=_)) => intro; sh.
 (* The gaptree type exposes the gaps of each child as indices in the
 parent to make the "gapee" and "avlish" props easier to work with. *)
 
-Inductive gaptree : forall (logap rogap : EG)(height : EN)(contents : EL), Type :=
+Inductive gaptree : forall (logap rogap : EG)(height : EN)(contents : EL), Set :=
 | Leaf : gaptree #None #None #0 []
 | Node{ho hl fl hr fr gll glr grl grr}
       (gl : Gap)(tl : gaptree gll glr hl fl)(d : A)(gr : Gap)(tr : gaptree grl grr hr fr)
@@ -169,7 +169,7 @@ Ltac Call x := let Q := fresh in assert (Q:=x); xinv Q.
 
 Section Find.
 
-  Inductive findResult(x : A) : forall (contents : EL), Type :=
+  Inductive findResult(x : A) : forall (contents : EL), Set :=
   | Found{fl fr} : findResult x (fl++^x++fr)
   | NotFound{f}{ni : ENotIn x f} : findResult x f.
 
@@ -225,7 +225,7 @@ Hint Extern 1 => leaves.
 Definition isLeaf{gl gr h f}(t : gaptree gl gr h f) : {h=#0} + {h<>#0}.
 Proof. xinv t. intros. right. intro. simplify_hyps. Qed.
 
-Inductive gapnode(h : EN)(f : EL) : Type :=
+Inductive gapnode(h : EN)(f : EL) : Set :=
 | Gapnode{gl gr}(t : gaptree gl gr h f) : gapnode h f.
 
 Hint Constructors gapnode.
@@ -240,7 +240,7 @@ Section insertion.
   | Higher{h} : gapee gl gr h -> ires gl gr h (ES h).
 
   Inductive insertResult(x : A)
-  : forall(inH : EN)(contents : EL), Type :=
+  : forall(inH : EN)(contents : EL), Set :=
   | FoundByInsert{h fl fr} : insertResult x h (fl++^x++fr)
   | Inserted{gl gr hi ho fl fr}
       (t : gaptree gl gr ho (fl++^x++fr))(i : ires gl gr hi ho)
@@ -261,7 +261,11 @@ Section insertion.
     xinv tl. intros tll tlr **.
     gsplit gr.
     - zauto.
-    - xinv tlr. intros. zauto.
+    - xinv tlr. intros.
+      (*zauto alone used to work here, but no longer*)
+      rewrite ?Eapp_assoc.
+      rewrite group3Eapp.
+      zauto.
   Qed.
 
   Definition ign2ins{hi fl x fr}(i : gapnode hi (fl++^x++fr))
@@ -341,7 +345,7 @@ Section deletion.
   Hint Constructors dres.
   
   Inductive delout (*intermediate result for delmin and delete*)
-  : forall (inH : EN)(contents : EL), Type :=
+  : forall (inH : EN)(contents : EL), Set :=
   | Delout {hi ho f}(t: gapnode ho f){dr: dres hi ho} : delout hi f.
 
   Hint Constructors delout.
@@ -350,7 +354,7 @@ Section deletion.
   (* doesn't have a gap.*)
   Definition avlish(gl gr : EG) := gl=SG0 \/ gr=SG0.
 
-  Inductive tryLowerResult: EG -> EG -> EN -> EL -> Type :=
+  Inductive tryLowerResult: EG -> EG -> EN -> EL -> Set :=
   | lowered{h f}(t : gaptree SG0 SG0 (ES h) f) : tryLowerResult SG1 SG1 (ES (ES h)) f
   | lowerFailed{gl gr h f}: avlish gl gr -> tryLowerResult gl gr h f.
 
@@ -390,7 +394,9 @@ Section deletion.
     - assert (gl=G0) by (sh;re). subst.
       simpl gS in ok2. subst.
       xinv trl. intros tl0 tr0 okl okr x0 s0. subst.
-      rewrite ?Eapp_assoc. rewrite group3Eapp. ec. ec. ec. ea. ea. re. zauto. zauto. se. ec.
+      rewrite ?Eapp_assoc. rewrite group3Eapp. ec. ec. ec. ea. ea. re.
+      (*zauto here runs into bug 3381*)
+      eauto. eauto. se. ec.
       ea. ea. re. zauto. intros. subst. leaves. dogs. re. se.
       instantiate (1:=G1). simpl. re. instantiate(1:=G1). simpl. f_equal. f_equal. ea.
       simpl gS. intros. zauto. se.
@@ -401,7 +407,7 @@ Section deletion.
   Qed.
 
   Inductive delminResult 
-  : forall (inH : EN)(contents : EL), Type :=
+  : forall (inH : EN)(contents : EL), Set :=
   | NoMin : delminResult #0 []
   | MinDeleted{hi f}(m : A)(dr : delout hi f) : delminResult hi (^m++f).
 
@@ -459,7 +465,9 @@ Section deletion.
     - assert (gr=G0) by (sh;re). subst.
       simpl gS in ok2. subst.
       xinv tlr. intros tl0 tr0 okl okr x0 s0. subst.
-      rewrite ?Eapp_assoc. rewrite group3Eapp. ec. ec. ec. ea. ea. re. zauto. zauto. se. ec.
+      rewrite ?Eapp_assoc. rewrite group3Eapp. ec. ec. ec. ea. ea. re.
+      (*zauto here runs into bug 3381*)
+      eauto. eauto. se. ec.
       ea. ea. re. zauto. intros. subst. leaves. dogs. re. se.
       instantiate (1:=G1). simpl. re. instantiate(1:=G1). simpl. f_equal. f_equal. ea.
       simpl gS. intros. zauto. se.
@@ -487,7 +495,7 @@ Section deletion.
   Qed.
 
   Inductive delmaxResult 
-  : forall (inH : EN)(contents : EL), Type :=
+  : forall (inH : EN)(contents : EL), Set :=
   | NoMax : delmaxResult #0 []
   | MaxDeleted{hi f}(m : A)(dr : delout hi f) : delmaxResult hi (f++^m).
 
@@ -540,7 +548,7 @@ Section deletion.
   Qed.
 
   Inductive deleteResult(x : A)(hi :EN)
-  : forall(contents : EL), Type :=
+  : forall(contents : EL), Set :=
   | DelNotFound{f}{ni : ENotIn x f} : deleteResult x hi f
   | Deleted{fl fr}
            (dr : delout hi (fl++fr)) : deleteResult x hi (fl++^x++fr).
@@ -633,7 +641,7 @@ Section joining.
   | JSameH : jres gl gr hil hih hih
   | JHigher : (hil<>hih -> gl<>gr) -> jres gl gr hil hih (ES hih).
 
-  Inductive joinResult(hil hih : EN)(f : EL) : Type :=
+  Inductive joinResult(hil hih : EN)(f : EL) : Set :=
   | JoinResult(h : nat){gl gr} : gaptree gl gr #h f -> jres gl gr hil hih #h -> joinResult hil hih f.
 
   Hint Constructors joinResult jres.
@@ -784,7 +792,7 @@ Require tctree.
 
 (* Glue logic to instantiate the Tree typeclass using gaptrees *)
 
-Inductive gaphtree(f : EL) : Type := (* gaptree with height of root *)
+Inductive gaphtree(f : EL) : Set := (* gaptree with height of root *)
 Gaphtree(h : nat){gl gr}(t : gaptree gl gr #h f) : gaphtree f.
 
 Instance gaphtree_tree : tctree.Tree A := { tree := gaphtree }.

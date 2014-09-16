@@ -34,7 +34,7 @@ See README.md for details.
 Require Import common.
 Typeclasses eauto := 8.
 
-Context {A : Type}.
+Context {A : Set}.
 Context {ordA : Ordered A}.
 
 Notation EL := (## (list A)).
@@ -87,7 +87,7 @@ match goal with H:OKNode _ _ _ #Red _ |- _ => apply OKNode4 in H; simplify_hyps 
 (***********************************************************************
 The Red/Black Tree itself, with erasable indices
 ***********************************************************************)
-Inductive rbtree : forall (color : EC)(height : EN)(contents : EL), Type :=
+Inductive rbtree : forall (color : EC)(height : EN)(contents : EL), Set :=
 | Leaf : rbtree #Black #0 []
 | Node{ho cl cr hi fl fr}
       (co : color)(tl : rbtree cl hi fl)(d : A)(tr : rbtree cr hi fr)
@@ -113,7 +113,7 @@ Ltac Call x := let Q := fresh in assert (Q:=x); xinv Q.
 
 Section Find.
 
-  Inductive findResult(x : A) : forall (contents : EL), Type :=
+  Inductive findResult(x : A) : forall (contents : EL), Set :=
   | Found{fl fr} : findResult x (fl++^x++fr)
   | NotFound{f}{ni : ENotIn x f} : findResult x f.
 
@@ -195,7 +195,7 @@ match goal with H : (OKNode _ _ _ _ _) |- _ =>  xinv H end.
 
 Section insert_rebalancing.
 
-  Inductive iOut(ci : EC)(hi : EN)(f : EL) : Type :=
+  Inductive iOut(ci : EC)(hi : EN)(f : EL) : Set :=
   | iout{co ho}(i : iChanged ci hi co ho)(to : rbtree co ho f) : iOut ci hi f.
 
   Hint Constructors iOut.
@@ -237,7 +237,7 @@ Section insertion.
   Hint Extern 5 (iChanged _ _ _ _) => eapply color2change.
 
   Inductive insertResult(x : A) 
-  : forall (inC : EC)(inH : EN)(contents : EL), Type :=
+  : forall (inC : EC)(inH : EN)(contents : EL), Set :=
   | FoundByInsert{c h fl fr} : insertResult x c h (fl++^x++fr)
   | Inserted{ci hi co ho fl fr}
           (i : iChanged ci hi co ho)(to : rbtree co ho (fl++^x++fr))
@@ -282,7 +282,7 @@ Inductive dChanged
 | rebalance{h}       : dChanged #Black (ES h) #Black h.
 
 Inductive delout (*intermediate result for delmin and delete*)
-: forall (inC : EC)(inH : EN)(contents : EL), Type :=
+: forall (inC : EC)(inH : EN)(contents : EL), Set :=
 | Delout {co ho f ci hi}
        (dc : dChanged ci hi co ho)(t : rbtree co ho f) : delout ci hi f.
 
@@ -301,7 +301,12 @@ Section delete_rebalancing.
     xinv tl0. 
     - eauto. 
     - intros tl1 tr1 ok1 s1.
-      csplit tl1. all:zauto.
+      csplit tl1. 
+      + zauto.
+      + (*zauto alone used to work here, but no longer*)
+        rewrite ?Eapp_assoc.
+        rewrite group3Eapp.
+        zauto.
   Defined.
 
   Hint Resolve dRotateLeft.
@@ -393,7 +398,7 @@ Section deletion.
   Hint Resolve colorFit dFitLeft dFitRight.
 
   Inductive delminResult 
-  : forall (inC : EC)(inH : EN)(contents : EL), Type :=
+  : forall (inC : EC)(inH : EN)(contents : EL), Set :=
   | NoMin : delminResult #Black #0 []
   | MinDeleted{ci hi f}
               (m : A)(dr : delout ci hi f) : delminResult ci hi (^m++f).
@@ -407,7 +412,7 @@ Section deletion.
   Defined.
 
   Inductive deleteResult(x : A)(ci : EC)(hi : EN)
-  : forall (contents : EL), Type :=
+  : forall (contents : EL), Set :=
   | DelNotFound{f}{ni : ENotIn x f} : deleteResult x ci hi f
   | Deleted{fl fr}
            (r : delout ci hi (fl++fr)) : deleteResult x ci hi (fl++^x++fr).

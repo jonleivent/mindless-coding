@@ -34,7 +34,7 @@ See README.md for details.
 Require Import common.
 Typeclasses eauto := 7.
 
-Context {A : Type}.
+Context {A : Set}.
 Context {ordA : Ordered A}.
 
 Notation EL := (## (list A)).
@@ -89,7 +89,7 @@ match goal with H:OKNode NoSubs _ _ _ |- _ => contradict (OKNode4 H) end.
 (***********************************************************************
 The AVL Tree itself, with erasable indices
 ***********************************************************************)
-Inductive avltree : forall (balFactor : EB)(height : EN)(contents : EL), Type :=
+Inductive avltree : forall (balFactor : EB)(height : EN)(contents : EL), Set :=
 | Leaf : avltree #NoSubs #0 []
 | Node{h bl br hl hr fl fr}
       (b : balanceFactor)(tl : avltree bl hl fl)(d : A)(tr : avltree br hr fr)
@@ -115,7 +115,7 @@ Ltac Call x := let Q := fresh in assert (Q:=x); xinv Q.
 
 Section Find.
 
-  Inductive findResult(x : A) : forall (contents : EL), Type :=
+  Inductive findResult(x : A) : forall (contents : EL), Set :=
   | Found{fl fr} :  findResult x (fl++^x++fr)
   | NotFound{f}{ni : ENotIn x f} : findResult x f.
 
@@ -237,7 +237,7 @@ Section insertion.
   Defined.
 
   Inductive insertResult(x : A) 
-  : forall (inB : EB)(inH : EN)(contents : EL), Type :=
+  : forall (inB : EB)(inH : EN)(contents : EL), Set :=
   | FoundByInsert{bi hi fl fr} : insertResult x bi hi (fl++^x++fr)
   | Inserted{bi hi fl fr bo ho}
             (to : avltree bo ho (fl++^x++fr))
@@ -316,7 +316,7 @@ Inductive OKdel
 Hint Constructors OKdel.
 
 Inductive delout (*intermediate result for delmin and delete*)
-: forall (inB : EB)(inH : EN)(contents : EL), Type :=
+: forall (inB : EB)(inH : EN)(contents : EL), Set :=
 | Delout{bi hi bo ho f}
         (t : avltree bo ho f){okd : OKdel bi hi bo ho} : delout bi hi f.
 
@@ -414,7 +414,7 @@ Section deletion.
   end.
 
   Inductive delminResult
-  : forall (inB : EB)(inH : EN)(contents : EL), Type :=
+  : forall (inB : EB)(inH : EN)(contents : EL), Set :=
   | NoMin : delminResult #NoSubs #0 []
   | MinDeleted{bi hi f}
               (m : A)(dr : delout bi hi f) : delminResult bi hi (^m++f).
@@ -428,7 +428,7 @@ Section deletion.
   Defined.
 
   Inductive deleteResult(x : A)(bi : EB)(hi : EN)
-  : forall (contents : EL), Type :=
+  : forall (contents : EL), Set :=
   | DelNotFound{f}{ni : ENotIn x f} : deleteResult x bi hi f
   | Deleted{fl fr}
            (dr : delout bi hi (fl++fr)) : deleteResult x bi hi (fl++^x++fr).
