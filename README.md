@@ -1,3 +1,5 @@
+Note: New work on this project will appear at:
+https://github.com/jonleivent/mindless-coding-phase2.git
 
 mindless-coding
 ===============
